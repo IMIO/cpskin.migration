@@ -1,0 +1,26 @@
+<configure xmlns="http://namespaces.zope.org/zope"
+           xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+           i18n_domain="cpskin">
+
+    <include package="cpskin.migration"/>
+
+    <genericsetup:registerProfile
+        name="testing"
+        title="cpskin.migration"
+        directory="profiles/testing"
+        description="Uninstall cpskin3 and installs CPSkin policy"
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        />
+
+    <genericsetup:registerProfile
+        name="testingwithmembers"
+        title="cpskin.migration"
+        directory="profiles/testingwithmembers"
+        description="Uninstall cpskin3 and installs CPSkin policy with members configuration"
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        />
+
+</configure>
+

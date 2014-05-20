@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<metadata>
+  <dependencies>
+   <dependency>profile-Products.CMFPlone:plone</dependency>
+   <dependency>profile-Products.CMFPlone:plone-content</dependency>
+   <dependency>profile-acptheme.cpskin3:default</dependency>
+   <dependency>profile-cpskin.migration:default</dependency>
+  </dependencies>
+</metadata>

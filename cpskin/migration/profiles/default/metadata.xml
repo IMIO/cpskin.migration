@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<metadata>
+  <version>1</version>
+  <dependencies>
+    <dependency>profile-acptheme.cpskin3:uninstall</dependency>
+    <dependency>profile-cpskin.migration:migration</dependency>
+  </dependencies>
+</metadata>

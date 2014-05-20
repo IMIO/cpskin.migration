@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<import-steps>
+  <import-step id="cpskin.migration.after"
+               version="20090625-01"
+               handler="cpskin.migration.setuphandlers.migrateAfterCpSkinInstall"
+               title="migrate cpskin3">
+  </import-step>
+</import-steps>

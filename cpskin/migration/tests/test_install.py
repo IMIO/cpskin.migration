@@ -23,6 +23,7 @@ class TestInstallWithMembers(unittest.TestCase):
                                           'cpskin_workflow',
                                           'cpskin_moderation_workflow',
                                           'cpskin_readonly_workflow'])
+        self.assertEqual(pw.getDefaultChain(), ('cpskin_workflow',))
 
 
 class TestInstall(unittest.TestCase):
@@ -51,3 +52,4 @@ class TestInstall(unittest.TestCase):
                                           'comment_review_workflow',
                                           'cpskin_workflow',
                                           'cpskin_moderation_workflow'])
+        self.assertEqual(pw.getDefaultChain(), ('cpskin_workflow',))

@@ -4,6 +4,7 @@
    <dependency>profile-Products.CMFPlone:plone</dependency>
    <dependency>profile-Products.CMFPlone:plone-content</dependency>
    <dependency>profile-acptheme.cpskin3:default</dependency>
+   <dependency>profile-acptheme.cpskin3:extra</dependency>
    <dependency>profile-cpskin.migration:default</dependency>
   </dependencies>
 </metadata>

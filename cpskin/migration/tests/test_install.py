@@ -13,7 +13,6 @@ class TestInstallWithMembers(unittest.TestCase):
 
     def test_workflows_with_members(self):
         pw = getToolByName(self.portal, 'portal_workflow')
-        print pw.objectIds()
         self.assertEqual(pw.objectIds(), ['folder_workflow',
                                           'intranet_folder_workflow',
                                           'intranet_workflow',

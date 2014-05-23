@@ -2,7 +2,8 @@
            xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
            i18n_domain="cpskin">
 
-    <include package="cpskin.migration"/>
+    <include package="cpskin.migration" />
+    <include package="collective.ckeditor" />
 
     <genericsetup:registerProfile
         name="testing"

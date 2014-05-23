@@ -4,7 +4,7 @@
 
     <genericsetup:registerProfile
         name="default"
-        title="cpskin.migration"
+        title="cpskin.migration: launch migration"
         directory="profiles/default"
         description="Uninstall cpskin3 and installs CPSkin policy"
         for="Products.CMFPlone.interfaces.IPloneSiteRoot"
@@ -13,7 +13,7 @@
 
     <genericsetup:registerProfile
         name="migration"
-        title="cpskin.migration"
+        title="cpskin.migration: migration sub-profile"
         directory="profiles/migration"
         description="migration profile for transition between cpskin3 and cpskin.policy"
         for="Products.CMFPlone.interfaces.IPloneSiteRoot"

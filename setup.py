@@ -1,30 +1,38 @@
+# -*- coding: utf-8 -*-
+
+version = 0.1
+
 from setuptools import setup, find_packages
 
-version = '0.1'
-
 long_description = (
-    open('README.txt').read()
+    open('README.rst').read()
     + '\n' +
     'Contributors\n'
     '============\n'
     + '\n' +
-    open('CONTRIBUTORS.txt').read()
+    open('CONTRIBUTORS.rst').read()
     + '\n' +
-    open('CHANGES.txt').read()
+    open('CHANGES.rst').read()
     + '\n')
 
 setup(name='cpskin.migration',
       version=version,
-      description="Migration for cpskin",
+      description='Migration package for cpskin',
       long_description=long_description,
-      classifiers=["Programming Language :: Python"],
+      classifiers=[
+          "Environment :: Web Environment",
+          "Programming Language :: Python",
+          "Programming Language :: Python :: 2.7",
+          "Framework :: Plone",
+          "Framework :: Plone :: 4.2",
+          "Framework :: Plone :: 4.3",
+      ],
       keywords='',
-      author='',
-      author_email='',
-      url='http://svn.plone.org/svn/collective/',
+      author='IMIO',
+      author_email='support@imio.be',
+      url='https://github.com/imio/',
       license='gpl',
       packages=find_packages(),
-      namespace_packages=['cpskin'],
       include_package_data=True,
       zip_safe=False,
       install_requires=[
@@ -32,7 +40,12 @@ setup(name='cpskin.migration',
           'cpskin.policy',
           'acptheme.cpskin3',
           'plone.api',
+          # -*- Extra requirements: -*-
       ],
-      extras_require=dict(
-          test=['plone.app.testing'],
-      ))
+      extras_require={
+          'test': [
+              'plone.app.testing',
+          ]
+      },
+      entry_points={},
+)

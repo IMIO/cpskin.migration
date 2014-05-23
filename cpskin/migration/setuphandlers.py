@@ -26,24 +26,24 @@ def createEventsAndNews(portal):
     wftool = getToolByName(portal, "portal_workflow")
 
     # News topic
-    if 'news' not in existing:
+    if 'actualites' not in existing:
         news_title = u'Actualités'
         news_desc = 'Actualités du site'
-        _createObjectByType('Folder', portal, id='news',
+        _createObjectByType('Folder', portal, id='actualites',
                             title=news_title, description=news_desc)
-        _createObjectByType('Collection', portal.news, id='aggregator',
+        _createObjectByType('Collection', portal.actualites, id='index',
                             title=news_title, description=news_desc)
 
-        folder = portal.news
+        folder = portal.actualites
         folder.setConstrainTypesMode(constraintypes.ENABLED)
         folder.setLocallyAllowedTypes(['News Item'])
         folder.setImmediatelyAddableTypes(['News Item'])
-        folder.setDefaultPage('aggregator')
+        folder.setDefaultPage('index')
         folder.unmarkCreationFlag()
         folder.setLanguage(language)
         publishContent(wftool, folder)
 
-        topic = portal.news.aggregator
+        topic = portal.actualites.index
         topic.setLanguage(language)
 
         query = [{'i': 'portal_type',
@@ -61,24 +61,24 @@ def createEventsAndNews(portal):
         publishContent(wftool, topic)
 
     # Events topic
-    if 'events' not in existing:
+    if 'evenements' not in existing:
         events_title = 'Événements'
         events_desc = 'Événements du site'
-        _createObjectByType('Folder', portal, id='events',
+        _createObjectByType('Folder', portal, id='evenements',
                             title=events_title, description=events_desc)
-        _createObjectByType('Collection', portal.events, id='aggregator',
+        _createObjectByType('Collection', portal.evenements, id='index',
                             title=events_title, description=events_desc)
 
-        folder = portal.events
+        folder = portal.evenements
         folder.setConstrainTypesMode(constraintypes.ENABLED)
         folder.setLocallyAllowedTypes(['Event'])
         folder.setImmediatelyAddableTypes(['Event'])
-        folder.setDefaultPage('aggregator')
+        folder.setDefaultPage('index')
         folder.unmarkCreationFlag()
         folder.setLanguage(language)
         publishContent(wftool, folder)
 
-        topic = folder.aggregator
+        topic = folder.index
         topic.unmarkCreationFlag()
         topic.setLanguage(language)
 
@@ -97,24 +97,32 @@ def createEventsAndNews(portal):
 
 
 def migrateTopics(portal):
-    # XXX todo
-    pc = getToolByName(portal, 'portal_catalog')
-    for brainTopic in pc(portal_type='Topic'):
-        topic = brainTopic.getObject()
-        api.content.delete(obj=topic)
+    """
+    We migrate only main news and events to collections
+    LATER: maybe migrate all the Topics of the site
+    """
+    if portal.hasObject('actualites'):
+        api.content.delete(obj=portal['actualites'])
+    if portal.hasObject('news'):
+        api.content.delete(obj=portal['news'])
+    if portal.hasObject('evenements'):
+        api.content.delete(obj=portal['evenements'])
+    if portal.hasObject('events'):
+        api.content.delete(obj=portal['events'])
+    createEventsAndNews(portal)
 
 
 def migrateTopicIds(portal):
     pc = getToolByName(portal, 'portal_catalog')
     for brainTopic in pc(portal_type='Topic'):
+        topic = brainTopic.getObject()
+        topic_parent = topic.aq_parent
         if brainTopic.getId == 'aggregator':
-            topic = brainTopic.getObject()
-            topic_parent = topic.aq_parent
             api.content.rename(obj=topic, new_id='index')
-            if topic_parent.getId() == 'news':
-                api.content.rename(obj=topic_parent, new_id='actualites')
-            if topic_parent.getId() == 'events':
-                api.content.rename(obj=topic_parent, new_id='evenements')
+        if topic_parent.getId() == 'news':
+            api.content.rename(obj=topic_parent, new_id='actualites')
+        if topic_parent.getId() == 'events':
+            api.content.rename(obj=topic_parent, new_id='evenements')
 
 
 def migrateBeforeCpSkinInstall(context):
@@ -127,7 +135,6 @@ def migrateBeforeCpSkinInstall(context):
         transaction.savepoint()
     migrateTopicIds(portal)
     migrateTopics(portal)
-    createEventsAndNews(portal)
     if portal.hasObject('Members'):
         # required to be able to create help-page
         portal['Members'].setConstrainTypesMode(0)

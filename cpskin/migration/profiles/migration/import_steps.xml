@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<import-steps>
-  <import-step id="cpskin.migration.before"
-               version="20090625-01"
-               handler="cpskin.migration.setuphandlers.migrateBeforeCpSkinInstall"
-               title="migrate cpskin3">
-  </import-step>
-</import-steps>

@@ -11,13 +11,4 @@
         provides="Products.GenericSetup.interfaces.EXTENSION"
         />
 
-    <genericsetup:registerProfile
-        name="migration"
-        title="cpskin.migration: migration sub-profile"
-        directory="profiles/migration"
-        description="migration profile for transition between cpskin3 and cpskin.policy"
-        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
-        provides="Products.GenericSetup.interfaces.EXTENSION"
-        />
-
 </configure>

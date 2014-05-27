@@ -3,6 +3,14 @@ from plone.app.testing import PloneWithPackageLayer
 from plone.app.testing import IntegrationTesting, FunctionalTesting
 import cpskin.migration
 
+CPSKIN_MIGRATION_BASIC_FIXTURE = PloneWithPackageLayer(
+    name="CPSKIN_MIGRATION_FIXTURE",
+    zcml_filename="testing.zcml",
+    zcml_package=cpskin.migration)
+
+CPSKIN_MIGRATION_BASIC_INTEGRATION_TESTING = IntegrationTesting(
+    bases=(CPSKIN_MIGRATION_BASIC_FIXTURE, ),
+    name="CPSKIN_MIGRATION_BASIC_INTEGRATION_TESTING")
 
 CPSKIN_MIGRATION_FIXTURE = PloneWithPackageLayer(
     name="CPSKIN_MIGRATION_FIXTURE",

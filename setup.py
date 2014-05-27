@@ -45,7 +45,6 @@ setup(name='cpskin.migration',
       extras_require={
           'test': [
               'plone.app.testing',
-          ]
+              'tempdir']
       },
-      entry_points={},
-)
+      entry_points={})

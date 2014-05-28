@@ -16,7 +16,7 @@ def migrateMiniSite(context):
     cpskintool = getToolByName(context, 'portal_cpskin')
     minisites_directory = os.path.join(CLIENT_HOME, 'minisites')
     if not os.path.exists(minisites_directory):
-        os.mkdir(minisites_directory)
+        os.makedirs(minisites_directory)
     config = ConfigParser.RawConfigParser()
     for subdomain, listWithRealPath in cpskintool.getMiniSitesDict():
         config.add_section(subdomain)

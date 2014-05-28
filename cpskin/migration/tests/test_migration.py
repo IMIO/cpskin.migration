@@ -5,7 +5,7 @@ import unittest2 as unittest
 from tempdir import TempDir
 from zope.component import getUtilitiesFor
 from plone.app.testing import applyProfile
-from cpskin.minisite.interfaces import IMinisite
+from cpskin.minisite.interfaces import IMinisiteConfig
 from cpskin.migration.testing import CPSKIN_MIGRATION_BASIC_INTEGRATION_TESTING
 
 
@@ -39,7 +39,7 @@ class TestInstallWithMembers(unittest.TestCase):
             self.assertTrue(os.path.exists(config_file))
             with open(config_file, 'r') as configfile:
                 self.assertEqual(configfile.read(), '[http://sub.domain.be]\nminisite_url = http://nohost/plone/news\nsearch_path = /plone/news\n\n')
-            minisites = list(getUtilitiesFor(IMinisite))
+            minisites = list(getUtilitiesFor(IMinisiteConfig))
             self.assertEqual(len(minisites), 1)
             minisitePath, minisite = minisites[0]
             self.assertEqual(minisitePath, u'/plone/news')

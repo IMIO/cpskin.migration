@@ -5,7 +5,8 @@ from Products.CMFCore.utils import getToolByName
 
 def deleteCPSkin3Workflows(portal):
     wt = getToolByName(portal, 'portal_workflow')
-    wt.manage_delObjects(['cpskin3_moderation_workflow', 'cpskin3_workflow'])
+    if wt.get('cpskin3_moderation_workflow'):
+        wt.manage_delObjects(['cpskin3_moderation_workflow', 'cpskin3_workflow'])
     if 'readonly_workflow' in wt.objectIds():
         wt.manage_delObjects(['readonly_workflow'])
 

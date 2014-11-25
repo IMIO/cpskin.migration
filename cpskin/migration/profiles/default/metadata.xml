@@ -3,5 +3,6 @@
   <version>1</version>
   <dependencies>
     <dependency>profile-acptheme.cpskin3:uninstall</dependency>
+    <dependency>profile-plone.app.collection:default</dependency>
   </dependencies>
 </metadata>

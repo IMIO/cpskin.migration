@@ -2,11 +2,16 @@
 import ConfigParser
 import os
 from zope.component import adapter
+from zope.component import getUtility, getMultiAdapter
 from plone import api
+from plone.portlets.interfaces import IPortletManager
+from plone.portlets.interfaces import IPortletAssignmentMapping
+from Products.directory.browser.interfaces import IDirectorySearchPortlet
 from Products.CMFCore.utils import getToolByName
 from Products.GenericSetup.interfaces import IBeforeProfileImportEvent
 from Products.CMFPlone.utils import _createObjectByType
 from Products.ATContentTypes.lib import constraintypes
+from acptheme.cpskin3.browser.cpskin3nav import ICPSkin3NavigationPortlet
 from cpskin.minisite.startup import registerMinisites
 from .utils import publishContent
 
@@ -176,6 +181,15 @@ def getProfileIdFromEvent(event):
     return profile_id
 
 
+def deleteOldPortlets(portal):
+    for column in ["plone.leftcolumn", "plone.rightcolumn"]:
+        manager = getUtility(IPortletManager, name=column)
+        assignments = getMultiAdapter((portal, manager), IPortletAssignmentMapping)
+    for portlet in assignments:
+        if ICPSkin3NavigationPortlet.providedBy(assignments[portlet]) or IDirectorySearchPortlet.providedBy(assignments[portlet]):
+            del assignments[portlet]
+
+
 @adapter(IBeforeProfileImportEvent)
 def migrateBeforeCpSkin3Uninstall(event):
     profile_id = getProfileIdFromEvent(event)
@@ -190,6 +204,7 @@ def migrateBeforeCpSkinInstall(event):
     if profile_id == 'cpskin.migration:default':
         portal = api.portal.get()
         migrateTopics(portal)
+        deleteOldPortlets(portal)
         if portal.hasObject('Members'):
             # required to be able to create help-page
             portal['Members'].setConstrainTypesMode(0)

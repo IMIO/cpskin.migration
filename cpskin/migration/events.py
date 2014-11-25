@@ -29,7 +29,7 @@ def migrateMiniSite(context):
         registerMinisites(object())
 
 
-def createEventsAndNews(portal):
+def createCollections(portal):
     """
     Inspired by Products.CMFPlone.setuphandlers
     """
@@ -107,6 +107,36 @@ def createEventsAndNews(portal):
         topic.setSort_on('start')
         publishContent(wftool, topic)
 
+    # A la une topic
+    if 'a-la-une' not in existing:
+        une_title = 'A la une'
+        une_desc = ''
+        _createObjectByType('Folder', portal, id='a-la-une',
+                            title=une_title, description=une_desc)
+        _createObjectByType('Collection', portal.get('a-la-une'), id='index',
+                            title=une_title, description=une_desc)
+
+        folder = portal.get('a-la-une')
+        folder.setConstrainTypesMode(constraintypes.ENABLED)
+        folder.setDefaultPage('index')
+        folder.unmarkCreationFlag()
+        folder.setLanguage(language)
+        publishContent(wftool, folder)
+
+        topic = folder.index
+        topic.unmarkCreationFlag()
+        topic.setLanguage(language)
+
+        query = [{'i': 'hiddenTags',
+                  'o': 'plone.app.querystring.operation.selection.is',
+                  'v': ['a la une']},
+                 {'i': 'review_state',
+                  'o': 'plone.app.querystring.operation.selection.is',
+                  'v': ['published']}]
+        topic.setQuery(query)
+        topic.setSort_on('start')
+        publishContent(wftool, topic)
+
 
 def migrateTopics(portal):
     """
@@ -114,14 +144,26 @@ def migrateTopics(portal):
     LATER: maybe migrate all the Topics of the site
     """
     if portal.hasObject('actualites'):
+        unlock(portal['actualites'])
         api.content.delete(obj=portal['actualites'])
     if portal.hasObject('news'):
+        unlock(portal['news'])
         api.content.delete(obj=portal['news'])
     if portal.hasObject('evenements'):
+        unlock(portal['evenements'])
         api.content.delete(obj=portal['evenements'])
     if portal.hasObject('events'):
+        unlock(portal['events'])
         api.content.delete(obj=portal['events'])
-    createEventsAndNews(portal)
+    if portal.hasObject('a-la-une'):
+        unlock(portal['a-la-une'])
+        api.content.delete(obj=portal['a-la-une'])
+    createCollections(portal)
+
+
+def unlock(obj):
+    if obj.wl_isLocked():
+        obj.wl_clearLocks()
 
 
 def getProfileIdFromEvent(event):

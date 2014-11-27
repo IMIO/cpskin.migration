@@ -35,3 +35,6 @@ def migrateAfterCpSkinInstall(context):
     deleteCPSkin3Workflows(portal)
     wt = getToolByName(portal, 'portal_workflow')
     wt.setDefaultChain(defaultChain)
+
+    portal_migration = getToolByName(portal, 'portal_migration')
+    portal_migration.upgrade()

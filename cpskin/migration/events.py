@@ -12,6 +12,8 @@ from Products.GenericSetup.interfaces import IBeforeProfileImportEvent
 from Products.CMFPlone.utils import _createObjectByType
 from Products.ATContentTypes.lib import constraintypes
 from acptheme.cpskin3.browser.cpskin3nav import ICPSkin3NavigationPortlet
+from acptheme.cpskin3.upgradesteps import (correct_objects_id,
+                                           cleanup_after_migrate)
 from cpskin.minisite.startup import registerMinisites
 from .utils import publishContent
 
@@ -190,12 +192,18 @@ def deleteOldPortlets(portal):
             del assignments[portlet]
 
 
+def runAcpthemeUpgradeSteps(context):
+    cleanup_after_migrate(context)
+    correct_objects_id(context)
+
+
 @adapter(IBeforeProfileImportEvent)
 def migrateBeforeCpSkin3Uninstall(event):
     profile_id = getProfileIdFromEvent(event)
     if profile_id == 'acptheme.cpskin3:uninstall':
         context = event.tool
         migrateMiniSite(context)
+        runAcpthemeUpgradeSteps(context)
 
 
 @adapter(IBeforeProfileImportEvent)

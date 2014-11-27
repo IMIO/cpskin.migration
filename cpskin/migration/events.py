@@ -7,6 +7,7 @@ from plone import api
 from plone.portlets.interfaces import IPortletManager
 from plone.portlets.interfaces import IPortletAssignmentMapping
 from Products.directory.browser.interfaces import IDirectorySearchPortlet
+from Products.directory.upgrades import common
 from Products.CMFCore.utils import getToolByName
 from Products.GenericSetup.interfaces import IBeforeProfileImportEvent
 from acptheme.cpskin3.browser.cpskin3nav import ICPSkin3NavigationPortlet
@@ -86,6 +87,10 @@ def runAcpthemeUpgradeSteps(context):
     correct_objects_id(context)
 
 
+def runProductsDirectoryUpgradeStep(context):
+    common(context)
+
+
 @adapter(IBeforeProfileImportEvent)
 def migrateBeforeCpSkin3Uninstall(event):
     profile_id = getProfileIdFromEvent(event)
@@ -99,9 +104,11 @@ def migrateBeforeCpSkin3Uninstall(event):
 def migrateBeforeCpSkinInstall(event):
     profile_id = getProfileIdFromEvent(event)
     if profile_id == 'cpskin.migration:default':
+        context = event.tool
         portal = api.portal.get()
         migrateTopics(portal)
         deleteOldPortlets(portal)
+        runProductsDirectoryUpgradeStep(context)
         if portal.hasObject('Members'):
             # required to be able to create help-page
             portal['Members'].setConstrainTypesMode(0)

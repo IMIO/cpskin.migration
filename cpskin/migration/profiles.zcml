@@ -11,4 +11,13 @@
         provides="Products.GenericSetup.interfaces.EXTENSION"
         />
 
+  <genericsetup:upgradeStep
+      title="Clean old GenericSetup Step"
+      description="Clean old GenericSetup Step after CPSkin 4 migration"
+      source="*"
+      destination="*"
+      handler="cpskin.migration.upgradesteps.cleanupRegistry"
+      profile="cpskin.migration:default"
+      />
+
 </configure>

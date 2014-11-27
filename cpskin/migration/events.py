@@ -9,13 +9,11 @@ from plone.portlets.interfaces import IPortletAssignmentMapping
 from Products.directory.browser.interfaces import IDirectorySearchPortlet
 from Products.CMFCore.utils import getToolByName
 from Products.GenericSetup.interfaces import IBeforeProfileImportEvent
-from Products.CMFPlone.utils import _createObjectByType
-from Products.ATContentTypes.lib import constraintypes
 from acptheme.cpskin3.browser.cpskin3nav import ICPSkin3NavigationPortlet
 from acptheme.cpskin3.upgradesteps import (correct_objects_id,
                                            cleanup_after_migrate)
 from cpskin.minisite.startup import registerMinisites
-from .utils import publishContent
+from cpskin.core.browser.folderview import configure_folderviews
 
 
 def migrateMiniSite(context):
@@ -34,115 +32,6 @@ def migrateMiniSite(context):
         with open(minisiteConfigFile, 'wb') as configfile:
             config.write(configfile)
         registerMinisites(object())
-
-
-def createCollections(portal):
-    """
-    Inspired by Products.CMFPlone.setuphandlers
-    """
-    existing = portal.keys()
-    language = portal.Language()
-    wftool = getToolByName(portal, "portal_workflow")
-
-    # News topic
-    if 'actualites' not in existing:
-        news_title = u'Actualités'
-        news_desc = 'Actualités du site'
-        _createObjectByType('Folder', portal, id='actualites',
-                            title=news_title, description=news_desc)
-        _createObjectByType('Collection', portal.actualites, id='index',
-                            title=news_title, description=news_desc)
-
-        folder = portal.actualites
-        folder.setConstrainTypesMode(constraintypes.ENABLED)
-        folder.setLocallyAllowedTypes(['News Item'])
-        folder.setImmediatelyAddableTypes(['News Item'])
-        folder.setDefaultPage('index')
-        folder.unmarkCreationFlag()
-        folder.setLanguage(language)
-        publishContent(wftool, folder)
-
-        topic = portal.actualites.index
-        topic.setLanguage(language)
-
-        query = [{'i': 'portal_type',
-                  'o': 'plone.app.querystring.operation.selection.is',
-                  'v': ['News Item']},
-                 {'i': 'review_state',
-                  'o': 'plone.app.querystring.operation.selection.is',
-                  'v': ['published']}]
-        topic.setQuery(query)
-
-        topic.setSort_on('effective')
-        topic.setSort_reversed(True)
-        topic.setLayout('folder_summary_view')
-        topic.unmarkCreationFlag()
-        publishContent(wftool, topic)
-
-    # Events topic
-    if 'evenements' not in existing:
-        events_title = 'Événements'
-        events_desc = 'Événements du site'
-        _createObjectByType('Folder', portal, id='evenements',
-                            title=events_title, description=events_desc)
-        _createObjectByType('Collection', portal.evenements, id='index',
-                            title=events_title, description=events_desc)
-
-        folder = portal.evenements
-        folder.setConstrainTypesMode(constraintypes.ENABLED)
-        folder.setLocallyAllowedTypes(['Event'])
-        folder.setImmediatelyAddableTypes(['Event'])
-        folder.setDefaultPage('index')
-        folder.unmarkCreationFlag()
-        folder.setLanguage(language)
-        publishContent(wftool, folder)
-
-        topic = folder.index
-        topic.unmarkCreationFlag()
-        topic.setLanguage(language)
-
-        query = [{'i': 'portal_type',
-                  'o': 'plone.app.querystring.operation.selection.is',
-                  'v': ['Event']},
-                 {'i': 'start',
-                  'o': 'plone.app.querystring.operation.date.afterToday',
-                  'v': ''},
-                 {'i': 'review_state',
-                  'o': 'plone.app.querystring.operation.selection.is',
-                  'v': ['published']}]
-        topic.setQuery(query)
-        topic.setSort_on('start')
-        publishContent(wftool, topic)
-
-    # A la une topic
-    if 'a-la-une' not in existing:
-        une_title = 'A la une'
-        une_desc = ''
-        _createObjectByType('Folder', portal, id='a-la-une',
-                            title=une_title, description=une_desc)
-        _createObjectByType('Collection', portal.get('a-la-une'), id='index',
-                            title=une_title, description=une_desc)
-
-        folder = portal.get('a-la-une')
-        folder.setConstrainTypesMode(constraintypes.ENABLED)
-        folder.setDefaultPage('index')
-        folder.unmarkCreationFlag()
-        folder.setLanguage(language)
-        publishContent(wftool, folder)
-
-        topic = folder.index
-        topic.unmarkCreationFlag()
-        topic.setLanguage(language)
-
-        query = [{'i': 'hiddenTags',
-                  'o': 'plone.app.querystring.operation.selection.is',
-                  'v': ['a la une']},
-                 {'i': 'review_state',
-                  'o': 'plone.app.querystring.operation.selection.is',
-                  'v': ['published']}]
-        topic.setQuery(query)
-        topic.setSort_on('start')
-        publishContent(wftool, topic)
 
 
 def migrateTopics(portal):
@@ -165,7 +54,7 @@ def migrateTopics(portal):
     if portal.hasObject('a-la-une'):
         unlock(portal['a-la-une'])
         api.content.delete(obj=portal['a-la-une'])
-    createCollections(portal)
+    configure_folderviews(portal)
 
 
 def unlock(obj):

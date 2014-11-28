@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from plone import api
 from Products.CMFCore.utils import getToolByName
+from plone.app.workflow.remap import remap_workflow
 
 
 def deleteCPSkin3Workflows(portal):
@@ -32,9 +33,23 @@ def migrateAfterCpSkinInstall(context):
         setup_tool.runAllImportStepsFromProfile('profile-cpskin.policy:members-configuration')
     else:
         setup_tool.runAllImportStepsFromProfile('profile-cpskin.policy:default')
-    deleteCPSkin3Workflows(portal)
+
     wt = getToolByName(portal, 'portal_workflow')
+    tt = getToolByName(portal, 'portal_types')
+
+    nondefault = [info[0] for info in wt.listChainOverrides()]
+    type_ids = [type for type in tt.listContentTypes() if type not in nondefault]
+    wt.setChainForPortalTypes(type_ids, wt.getDefaultChain())
     wt.setDefaultChain(defaultChain)
+    chain='(Default)'
+    state_map = {'published_and_shown': 'published_and_shown',
+                 'created': 'created',
+                 'published_and_hidden': 'published_and_hidden'}
+
+    remap_workflow(portal, type_ids=type_ids, chain=chain,
+                   state_map=state_map)
+
+    deleteCPSkin3Workflows(portal)
 
     portal_migration = getToolByName(portal, 'portal_migration')
     portal_migration.upgrade()

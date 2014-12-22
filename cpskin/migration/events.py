@@ -15,6 +15,8 @@ from acptheme.cpskin3.upgradesteps import (correct_objects_id,
                                            cleanup_after_migrate)
 from cpskin.minisite.startup import registerMinisites
 from cpskin.core.browser.folderview import configure_folderviews
+import logging
+logger = logging.getLogger('cpskin.migration.event')
 
 
 def migrateMiniSite(context):
@@ -25,11 +27,18 @@ def migrateMiniSite(context):
         os.makedirs(minisites_directory)
     config = ConfigParser.RawConfigParser()
     for subdomain, listWithRealPath in cpskintool.getMiniSitesDict():
-        config.add_section(subdomain)
-        config.set(subdomain, 'minisite_url', listWithRealPath[0])
-        config.set(subdomain, 'search_path', listWithRealPath[1])
+        path = listWithRealPath[1]
+        portal_url = subdomain
+        minisite_url = listWithRealPath[0]
+        try:
+            config.add_section(path)
+        except ConfigParser.DuplicateSectionError:
+            logger.info('Ducplicate section error, not important in our case')
+        config.set(path, 'minisite_url', minisite_url)
+        config.set(path, 'portal_url', portal_url)
+        #import ipdb; ipdb.set_trace()
     if config.sections():
-        minisiteConfigFile = os.path.join(minisites_directory, 'minisite.cfg')
+        minisiteConfigFile = os.path.join(minisites_directory, 'minisite.ini')
         with open(minisiteConfigFile, 'wb') as configfile:
             config.write(configfile)
         registerMinisites(object())

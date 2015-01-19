@@ -4,7 +4,14 @@ Changelog
 0.2.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Delete empty folder into portal_skins.
+  [bsuttor]
+
+- Uninstall old products with quickinstaller.
+  [bsuttor]
+
+- Clean up zmi broken objects.
+  [bsuttor]
 
 
 0.2.1 (2015-01-06)

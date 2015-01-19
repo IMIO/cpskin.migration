@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.2.2 (unreleased)
+0.3.0 (2015-01-19)
 ------------------
 
 - Delete empty folder into portal_skins.

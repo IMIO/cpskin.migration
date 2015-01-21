@@ -4,7 +4,8 @@ Changelog
 0.3.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Clean up webcouturier.dropdownmenu, Products.directroy, tecnoteca.googlemap, kss, iconified_document_actions.
+  [bsuttor]
 
 
 0.3.0 (2015-01-19)

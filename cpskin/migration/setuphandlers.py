@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from plone import api
 from Products.CMFCore.utils import getToolByName
+from Products.GenericSetup.interfaces import IUpgradeSteps
+from zope.component import getGlobalSiteManager
+from plone.app.upgrade.utils import unregisterSteps
+from plone.app.upgrade.v40.alphas import cleanUpToolRegistry
 from plone.app.workflow.remap import remap_workflow
 from cpskin.migration.upgradesteps import cleanupRegistry
-from plone.browserlayer.utils import unregister_layer
 import logging
 logger = logging.getLogger('cpskin.migration')
 
@@ -54,67 +57,95 @@ def migrateAfterCpSkinInstall(context):
                    state_map=state_map)
 
     deleteCPSkin3Workflows(portal)
+    logger.info('old registry deleted.')
 
     portal_migration = getToolByName(portal, 'portal_migration')
     portal_migration.upgrade()
-    uninstall_products(portal)
-    delete_old_skins(portal)
-    clean_up_zmi(portal)
+    migrate_directory(portal)
+    delete_iconified_document_actions(portal)
+    delete_technoteca_googlemap(portal)
+    remove_kss(portal)
     cleanupRegistry(setup_tool)
-    logger.info('old registry deleted.')
+
+    # delete registred upgrade steps
+    sm = getGlobalSiteManager()
+    sm.unregisterUtility(provided=IUpgradeSteps, name=u'acptheme.cpskin3:default')
+    delete_old_skin_folder(portal, 'contacts')
+    clean_up_zmi(portal)
 
 
-def delete_old_skins(portal):
-    skins = [
-        'iconified_document_actions_styles',
-        'iconifieddocumentactions_styles',
-        'kss',
-        'plone_kss',
-        'TTGoogleMapCss',
-        'TTGoogleMapImages',
-        'TTGoogleMapJS',
-        'TTGoogleMapScripts',
-        'TTGoogleMapViews',
-        'contacts',
-        'archetypes_kss',
-    ]
+def migrate_directory(portal):
+    setup_tool = getToolByName(portal, 'portal_setup')
+    logger.info("Starting migration of Directory")
+    setup_tool.runAllImportStepsFromProfile('profile-collective.directory:migration')
+    setup_tool.runAllImportStepsFromProfile('profile-Products.directory:uninstall')
 
-    themes = ['Plone Classic Theme', 'Plone Default', 'Sunburst Theme']
-    # XXX delete unexistant folder skins for properties skins (portal_skins -> properties)
+    # delete registred upgrade steps
+    sm = getGlobalSiteManager()
+    sm.unregisterUtility(provided=IUpgradeSteps, name=u'Products.directory:default')
 
-    for skin in skins:
-        if hasattr(portal.portal_skins, skin):
-            portal.portal_skins.manage_delObjects(ids=[skin, ])
-            logger.info('Deleted: {} skin'.format(skin))
-    # remove old registered CSS, does not fail if resource not exists
-    portal.portal_css.unregisterResource('iconifieddocumentactions.css')
-    # unregister old BrowserLayer 'communesplone.iconified_document_actions.layer'
-    try:
-        unregister_layer('communesplone.iconified_document_actions.layer')
-    except KeyError:
-    # layer was already unregistered, we pass...
-        pass
+    logger.info("Migration of Directory ran")
+
+
+def delete_iconified_document_actions(portal):
+    setup_tool = getToolByName(portal, 'portal_setup')
+    uninstall_product(portal, 'communesplone.iconified_document_actions')
+    setup_tool.runAllImportStepsFromProfile('profile-communesplone.iconified_document_actions:uninstall')
+    logger.info("communesplone.iconified_document_actions deleted")
+
+
+def delete_technoteca_googlemap(portal):
+    setup_tool = getToolByName(portal, 'portal_setup')
+    uninstall_product(portal, 'tecnoteca.googlemap')
+    setup_tool.runAllImportStepsFromProfile('profile-tecnoteca.googlemap:uninstall')
+     # delete registred upgrade steps
+    sm = getGlobalSiteManager()
+    sm.unregisterUtility(provided=IUpgradeSteps, name=u'tecnoteca.googlemap:default')
 
 
 def clean_up_zmi(portal):
-    old_zmi_objects = ['portal_cpskin', 'portal_kss']
+    old_zmi_objects = ['portal_cpskin']
     for old_zmi_object in old_zmi_objects:
         if hasattr(portal, old_zmi_object):
             portal.manage_delObjects(ids=[old_zmi_object, ])
             logger.info('Deleted: {}'.format(old_zmi_object))
 
 
-def uninstall_products(portal):
-    #import ipdb; ipdb.set_trace()
+def uninstall_product(portal, product_name):
     installer = getToolByName(portal, 'portal_quickinstaller')
-    products = [
-        #'webcouturier.dropdownmenu',
-        'plone.app.kss',
-        'communesplone.iconified_document_actions',
-        'directory',
-        'tecnoteca.googlemap',
-        #'acptheme.cpskin3'
-    ]
-    for prodcut in products:
-        if installer.isProductInstalled(prodcut):
-            installer.uninstallProducts([prodcut])
+    if installer.isProductInstalled(product_name):
+        installer.uninstallProducts([product_name])
+
+
+def delete_old_skin_folder(portal, folder_name):
+    skinstool = getToolByName(portal, 'portal_skins')
+    selections = skinstool._getSelections()
+    for skin_name in selections.keys():
+        layers = selections[skin_name].split(',')
+        if folder_name in layers:
+            layers.remove(folder_name)
+        skinstool.addSkinSelection(skin_name, ','.join(layers))
+    if hasattr(skinstool, folder_name):
+        skinstool.manage_delObjects(ids=[folder_name, ])
+    logger.info('Deleted: {} from portal_skins folder'.format(folder_name))
+
+
+def remove_kss(portal):
+    # remove KSS-related skin layers from all skins
+    delete_old_skin_folder(portal, 'plone_kss')
+    delete_old_skin_folder(portal, 'archetypes_kss')
+    delete_old_skin_folder(portal, 'kss')
+
+    # remove portal_kss tool
+    portal = getToolByName(portal, 'portal_url').getPortalObject()
+    if 'portal_kss' in portal:
+        portal.manage_delObjects(['portal_kss'])
+
+    # make sure portal_kss is no longer listed as a required tool
+    setup_tool = getToolByName(portal, 'portal_setup')
+    cleanUpToolRegistry(setup_tool)
+
+    # make sure plone.app.kss is not activated in the quick installer
+    uninstall_product(portal, 'plone.app.kss')
+
+    unregisterSteps(setup_tool, import_steps=['kss_mimetype'])

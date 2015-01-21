@@ -10,7 +10,8 @@ def cleanupRegistry(context):
                  'directory-postInstall',
                  'directory-Hide-Tools-From-Navigation',
                  'directory-remove-profile',
-                 'remember-uninstall']
+                 'remember-uninstall',
+                 'directory-remove-profile']
     registry = context.getImportStepRegistry()
     for old_step in OLD_STEPS:
         if old_step in registry.listSteps():

@@ -21,7 +21,11 @@ logger = logging.getLogger('cpskin.migration.event')
 
 def migrateMiniSite(context):
     CLIENT_HOME = os.environ["CLIENT_HOME"]
-    cpskintool = getToolByName(context, 'portal_cpskin')
+    try:
+        cpskintool = getToolByName(context, 'portal_cpskin')
+    except AttributeError:
+        logger.info("cpskin already uninstall")
+        return
     minisites_directory = os.path.join(CLIENT_HOME, 'minisites')
     if not os.path.exists(minisites_directory):
         os.makedirs(minisites_directory)

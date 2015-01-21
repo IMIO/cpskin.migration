@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.3.1 (unreleased)
+0.3.2 (2015-01-21)
 ------------------
 
 - Clean up webcouturier.dropdownmenu, Products.directroy, tecnoteca.googlemap, kss, iconified_document_actions.

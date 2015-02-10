@@ -4,7 +4,8 @@ Changelog
 0.3.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Delete some old package with quickinstaller after clean up them.
+  [bsuttor]
 
 
 0.3.2 (2015-01-21)

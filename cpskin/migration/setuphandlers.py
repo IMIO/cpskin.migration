@@ -72,6 +72,10 @@ def migrateAfterCpSkinInstall(context):
     sm.unregisterUtility(provided=IUpgradeSteps, name=u'acptheme.cpskin3:default')
     delete_old_skin_folder(portal, 'contacts')
     clean_up_zmi(portal)
+    uninstall_product(portal, 'acptheme.cpskin3')
+    uninstall_product(portal, 'webcouturier.dropdownmenu')
+    uninstall_product(portal, 'tecnoteca.googlemap')
+    uninstall_product(portal, 'directory')
 
 
 def migrate_directory(portal):

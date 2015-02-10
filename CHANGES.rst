@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.3.3 (unreleased)
+0.3.3 (2015-02-10)
 ------------------
 
 - Delete some old package with quickinstaller after clean up them.

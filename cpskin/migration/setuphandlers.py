@@ -77,6 +77,9 @@ def migrateAfterCpSkinInstall(context):
     uninstall_product(portal, 'tecnoteca.googlemap')
     uninstall_product(portal, 'directory')
 
+    reset_navtreeproperties(portal)
+    readd_plonecustom(portal)
+
 
 def migrate_directory(portal):
     setup_tool = getToolByName(portal, 'portal_setup')
@@ -102,7 +105,7 @@ def delete_technoteca_googlemap(portal):
     setup_tool = getToolByName(portal, 'portal_setup')
     uninstall_product(portal, 'tecnoteca.googlemap')
     setup_tool.runAllImportStepsFromProfile('profile-tecnoteca.googlemap:uninstall')
-     # delete registred upgrade steps
+    # delete registred upgrade steps
     sm = getGlobalSiteManager()
     sm.unregisterUtility(provided=IUpgradeSteps, name=u'tecnoteca.googlemap:default')
 
@@ -153,3 +156,15 @@ def remove_kss(portal):
     uninstall_product(portal, 'plone.app.kss')
 
     unregisterSteps(setup_tool, import_steps=['kss_mimetype'])
+
+
+def reset_navtreeproperties(portal):
+    navtree_properties = portal.portal_properties.navtree_properties
+    navtree_properties.manage_changeProperties(enable_wf_state_filtering=True,)
+
+
+def readd_plonecustom(portal):
+    zope_folder = portal.portal_skins.custom
+    name = 'ploneCustom.css.uninstalled'
+    if name in zope_folder.objectIds():
+        zope_folder.manage_renameObject(name, 'ploneCustom.css')

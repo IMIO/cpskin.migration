@@ -4,7 +4,8 @@ Changelog
 0.3.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Do not delete folders actualites and evenements on upgrade steps.
+  [bsuttor]
 
 
 0.3.3 (2015-02-10)

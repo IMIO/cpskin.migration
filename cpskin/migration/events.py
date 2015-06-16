@@ -53,21 +53,21 @@ def migrateTopics(portal):
     We migrate only main news and events to collections
     LATER: maybe migrate all the Topics of the site
     """
-    if portal.hasObject('actualites'):
-        unlock(portal['actualites'])
-        api.content.delete(obj=portal['actualites'])
+    # if portal.hasObject('actualites'):
+    #     unlock(portal['actualites'])
+    #     api.content.delete(obj=portal['actualites'])
     if portal.hasObject('news'):
         unlock(portal['news'])
         api.content.delete(obj=portal['news'])
-    if portal.hasObject('evenements'):
-        unlock(portal['evenements'])
-        api.content.delete(obj=portal['evenements'])
+    # if portal.hasObject('evenements'):
+    #     unlock(portal['evenements'])
+    #     api.content.delete(obj=portal['evenements'])
     if portal.hasObject('events'):
         unlock(portal['events'])
         api.content.delete(obj=portal['events'])
-    if portal.hasObject('a-la-une'):
-        unlock(portal['a-la-une'])
-        api.content.delete(obj=portal['a-la-une'])
+    # if portal.hasObject('a-la-une'):
+    #     unlock(portal['a-la-une'])
+    #     api.content.delete(obj=portal['a-la-une'])
     configure_folderviews(portal)
 
 

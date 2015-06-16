@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.3.4 (unreleased)
+0.3.4 (2015-06-16)
 ------------------
 
 - Do not delete folders actualites and evenements on upgrade steps.

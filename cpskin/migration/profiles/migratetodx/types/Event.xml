@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<object name="Event">
+    <property name="behaviors" purge="false">
+        <element value="cpskin.core.behaviors.metadata.IHiddenTags" />
+        <element value="cpskin.core.behaviors.metadata.IISearchTags" />
+        <element value="cpskin.core.behaviors.metadata.IIAmTags" />
+        <element value="plone.app.contenttypes.behaviors.leadimage.ILeadImage"/>
+    </property>
+</object>

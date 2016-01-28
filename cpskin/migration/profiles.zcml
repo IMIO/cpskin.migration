@@ -11,6 +11,15 @@
         provides="Products.GenericSetup.interfaces.EXTENSION"
         />
 
+  <genericsetup:registerProfile
+        name="migratetodx"
+        title="cpskin.migration: migrate at to dx"
+        directory="profiles/migratetodx"
+        description="Updates CPSkin to dexterity"
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        />
+
   <genericsetup:upgradeStep
       title="Clean old GenericSetup Step"
       description="Clean old GenericSetup Step after CPSkin 4 migration"

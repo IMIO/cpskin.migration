@@ -12,5 +12,8 @@
   <subscriber
     handler=".events.migrateBeforeCpSkinInstall" />
 
+
+  <adapter name="cpskinmigrator" factory=".migrate.CpskinMigrator" />
+
 </configure>
 

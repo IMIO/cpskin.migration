@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
+from cpskin.core.interfaces import IAlbumCollection
+from cpskin.core.interfaces import IBannerActivated
 from cpskin.core.interfaces import IFolderViewSelectedContent
+from cpskin.core.interfaces import IFolderViewWithBigImages
+from cpskin.core.interfaces import ILocalBannerActivated
+from cpskin.core.interfaces import IMediaActivated
+from cpskin.core.interfaces import IVideoCollection
+from cpskin.core.viewlets.interfaces import IViewletMenuToolsBox
+from cpskin.core.viewlets.interfaces import IViewletMenuToolsFaceted
+from cpskin.menu.interfaces import IFourthLevelNavigation
 from plone import api
 from plone.app.contenttypes.migration.migration import ICustomMigrator
 from zope.component import adapter
@@ -20,14 +29,15 @@ def migratetodx(setup):
     logger.info('Upgrate to dx')
     portal = setup.getSite()
     request = getattr(portal, 'REQUEST', None)
-    pc = api.portal.get_tool(name='portal_catalog')
-    pc.clearFindAndRebuild()
-    ps = api.portal.get_tool(name='portal_setup')
-    ps.runAllImportStepsFromProfile('profile-plone.app.contenttypes:default')
-    migration_view = getMultiAdapter(
-        (portal, request),
-        name=u'migrate_from_atct'
-    )
+    # pc = api.portal.get_tool(name='portal_catalog')
+    # pc.clearFindAndRebuild()
+    # ps = api.portal.get_tool(name='portal_setup')
+    # ps.runAllImportStepsFromProfile('profile-plone.app.contenttypes:default')
+    # plone.app.contenttypes is installed by generic setup (metadata.xml)
+    from plone.app.contenttypes.interfaces import IPloneAppContenttypesLayer
+    alsoProvides(request, IPloneAppContenttypesLayer)
+
+    migration_view = getMultiAdapter((portal, request), name=u'migrate_from_atct')
     content_types = [
         'News Item',
         'BlobFile',
@@ -79,10 +89,25 @@ class CpskinMigrator(object):
             new.iamTags = old.iamTags
             logger.info("{0} iamTags added".format(new_path))
 
+        interfaces = [
+            IAlbumCollection,
+            IBannerActivated,
+            IFolderViewSelectedContent,
+            IFolderViewWithBigImages,
+            ILocalBannerActivated,
+            IMediaActivated,
+            IVideoCollection,
+            IViewletMenuToolsBox,
+            IViewletMenuToolsFaceted,
+            IFourthLevelNavigation,
+        ]
+        for interface in interfaces:
+            if interface.providedBy(old):
+                alsoProvides(new, interface)
+                logger.info("{0} provides {1}".format(new_path, str(interface)))
+
         # view folder in homepage
-        if IFolderViewSelectedContent.providedBy(old):
-            alsoProvides(new, IFolderViewSelectedContent)
-            logger.info("{0} provides IFolderViewSelectedContent".format(new_path))
+
 
         # default view
         # if old.getDefaultPage():

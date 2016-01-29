@@ -1,7 +1,7 @@
 <configure xmlns="http://namespaces.zope.org/zope"
   i18n_domain="cpskin">
 
-  <include package="acptheme.cpskin3"/>
+  <!--include package="acptheme.cpskin3"/-->
   <include package="cpskin.policy"/>
 
   <include file="profiles.zcml" />

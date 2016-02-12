@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.3.5 (unreleased)
+0.3.5 (2016-02-12)
 ------------------
 
 - Add profile for migration to dx.

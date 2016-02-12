@@ -4,7 +4,8 @@ Changelog
 0.3.5 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Add profile for migration to dx.
+  [bsuttor]
 
 
 0.3.4 (2015-06-16)

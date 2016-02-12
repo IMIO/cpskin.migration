@@ -3,5 +3,6 @@
   <import-step id="cpskin.migration.migratetodx"
                handler="cpskin.migration.migrate.migratetodx"
                title="cpskin.migration: import step for migration">
+    <dependency step="typeinfo" />
   </import-step>
 </import-steps>

@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+from collective.geo.geographer.interfaces import IGeoreferenceable
+from collective.geo.behaviour.behaviour import Coordinates
+from collective.geo.geographer.interfaces import IWriteGeoreferenced
 from copy import deepcopy
+
 from cpskin.core.interfaces import IAlbumCollection
 from cpskin.core.interfaces import IBannerActivated
 from cpskin.core.interfaces import IFolderViewSelectedContent
@@ -26,7 +30,6 @@ from eea.facetednavigation.widgets.interfaces import ICriterion
 from eea.facetednavigation.widgets.interfaces import IWidget
 from eea.facetednavigation.widgets.interfaces import IWidgetsInfo
 from eea.facetednavigation.widgets.resultsfilter.interfaces import IResultsFilterWidget
-
 from plone import api
 from plone.app.contenttypes.interfaces import IPloneAppContenttypesLayer
 from plone.app.contenttypes.migration.migration import ICustomMigrator
@@ -410,6 +413,15 @@ class CpskinMigrator(object):
         if IFacetedNavigable.providedBy(old):
             criteria = Criteria(new)
             criteria._update(ICriteria(old).criteria)
+            logger.info("Add facteted criteria for {0}".format(new_path))
 
         # migrate geolocalisation
-
+        if IGeoreferenceable.providedBy(old):
+            try:
+                IWriteGeoreferenced(old)
+                old_coord = Coordinates(old).coordinates
+                new_coord = Coordinates(new)
+                new_coord.coordinates = old_coord
+                logger.info("Add coord criteria for {0}".format(new_path))
+            except:
+                pass

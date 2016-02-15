@@ -4,7 +4,8 @@ Changelog
 0.3.7 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- First step removing cpskin3.
+  [bsuttor]
 
 
 0.3.6 (2016-02-15)

@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.3.6 (unreleased)
+0.3.6 (2016-02-15)
 ------------------
 
 - Migrate geo object to dx too.

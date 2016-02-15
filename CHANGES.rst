@@ -4,7 +4,8 @@ Changelog
 0.3.6 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Migrate geo object to dx too.
+  [bsuttor]
 
 
 0.3.5 (2016-02-12)

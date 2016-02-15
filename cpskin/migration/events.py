@@ -6,13 +6,13 @@ from zope.component import getUtility, getMultiAdapter
 from plone import api
 from plone.portlets.interfaces import IPortletManager
 from plone.portlets.interfaces import IPortletAssignmentMapping
-from Products.directory.browser.interfaces import IDirectorySearchPortlet
-from Products.directory.upgrades import common
+# from Products.directory.browser.interfaces import IDirectorySearchPortlet
+# from Products.directory.upgrades import common
 from Products.CMFCore.utils import getToolByName
 from Products.GenericSetup.interfaces import IBeforeProfileImportEvent
-from acptheme.cpskin3.browser.cpskin3nav import ICPSkin3NavigationPortlet
-from acptheme.cpskin3.upgradesteps import (correct_objects_id,
-                                           cleanup_after_migrate)
+# from acptheme.cpskin3.browser.cpskin3nav import ICPSkin3NavigationPortlet
+# from acptheme.cpskin3.upgradesteps import (correct_objects_id,
+#                                            cleanup_after_migrate)
 from cpskin.minisite.startup import registerMinisites
 from cpskin.core.browser.folderview import configure_folderviews
 import logging
@@ -40,7 +40,6 @@ def migrateMiniSite(context):
             logger.info('Ducplicate section error, not important in our case')
         config.set(path, 'minisite_url', minisite_url)
         config.set(path, 'portal_url', portal_url)
-        #import ipdb; ipdb.set_trace()
     if config.sections():
         minisiteConfigFile = os.path.join(minisites_directory, 'minisite.ini')
         with open(minisiteConfigFile, 'wb') as configfile:
@@ -91,17 +90,19 @@ def deleteOldPortlets(portal):
         manager = getUtility(IPortletManager, name=column)
         assignments = getMultiAdapter((portal, manager), IPortletAssignmentMapping)
     for portlet in assignments:
-        if ICPSkin3NavigationPortlet.providedBy(assignments[portlet]) or IDirectorySearchPortlet.providedBy(assignments[portlet]):
+        # if ICPSkin3NavigationPortlet.providedBy(assignments[portlet]) or IDirectorySearchPortlet.providedBy(assignments[portlet]):
             del assignments[portlet]
 
 
 def runAcpthemeUpgradeSteps(context):
-    cleanup_after_migrate(context)
-    correct_objects_id(context)
+    # cleanup_after_migrate(context)
+    # correct_objects_id(context)
+    pass
 
 
 def runProductsDirectoryUpgradeStep(context):
-    common(context)
+    # common(context)
+    pass
 
 
 @adapter(IBeforeProfileImportEvent)

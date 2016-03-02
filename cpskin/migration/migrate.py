@@ -11,6 +11,7 @@ from cpskin.core.interfaces import IFolderViewWithBigImages
 from cpskin.core.interfaces import ILocalBannerActivated
 from cpskin.core.interfaces import IMediaActivated
 from cpskin.core.interfaces import IVideoCollection
+from cpskin.core.utils import safe_utf8
 from cpskin.core.viewlets.interfaces import IViewletMenuToolsBox
 from cpskin.core.viewlets.interfaces import IViewletMenuToolsFaceted
 from cpskin.menu.interfaces import IFourthLevelNavigation
@@ -22,7 +23,6 @@ from eea.facetednavigation.interfaces import IFacetedNavigable
 from eea.facetednavigation.settings.interfaces import IDisableSmartFacets
 from eea.facetednavigation.settings.interfaces import IHidePloneLeftColumn
 from eea.facetednavigation.settings.interfaces import IHidePloneRightColumn
-from eea.facetednavigation.subtypes.interfaces import IFacetedNavigable
 from eea.facetednavigation.subtypes.interfaces import IFacetedWrapper
 from eea.facetednavigation.views.interfaces import IViewsInfo
 from eea.facetednavigation.widgets.alphabetic.interfaces import IAlphabeticWidget
@@ -129,14 +129,12 @@ def migratetodx(context):
         migrate_schemaextended_content=True,
         migrate_references=True,
     )
-    # results = migration_view(from_form=True)
-    idp = pc(path={'query': '/couvin/actualites/actualites'}, is_default_page=1)
-    logger.info('---------------- {}'.format(len(idp)))
     logger.info(results)
 
     logger.info('Fix image scales')
     fix_at_image_scales(portal)
     fix_portlets_image_scales(portal)
+    remove_old_collective_content_lead_image(portal)
 
 
 # Old scale name to new scale name
@@ -287,18 +285,21 @@ def is_pam_installed_and_not_used(portal):
 def enabled_behaviors(portal):
     types = {
         'Document': [
+            'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
             'plone.app.contenttypes.behaviors.leadimage.ILeadImage',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Event': [
+            'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
             'plone.app.contenttypes.behaviors.leadimage.ILeadImage',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Folder': [
+            'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
@@ -306,11 +307,16 @@ def enabled_behaviors(portal):
             'eea.facetednavigation.subtypes.interfaces.IPossibleFacetedNavigable',
             'collective.plonetruegallery.interfaces.IGallery'],
         'News Item': [
+            'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Collection': [
+            'cpskin.core.behaviors.metadata.IStandardTags',
+            'cpskin.core.behaviors.metadata.IHiddenTags',
+            'cpskin.core.behaviors.metadata.IISearchTags',
+            'cpskin.core.behaviors.metadata.IIAmTags',
             'eea.facetednavigation.subtypes.interfaces.IPossibleFacetedNavigable',
             'collective.plonetruegallery.interfaces.IGallery',
         ]
@@ -337,6 +343,13 @@ def remove_old_import_step(setup):
         logger.info("Old %s import step removed from import registry.", old_step)
 
 
+def remove_old_collective_content_lead_image(portal):
+    """Remove collective.contentleadimage, it's now in plone core."""
+    ps = api.portal.get_tool(name='portal_setup')
+    ps.runAllImportStepsFromProfile('profile-collective.contentleadimage:uninstall')
+    logger.info('collective.contentleadimage uninstalled')
+
+
 @implementer(ICustomMigrator)
 @adapter(Interface)
 class CpskinMigrator(object):
@@ -349,22 +362,22 @@ class CpskinMigrator(object):
 
         # standardTags
         if getattr(old, 'standardTags', None):
-            new.subject = old.standardTags
+            new.standardTags = safe_utf8(old.standardTags)
             logger.info("{0} standardTags added".format(new_path))
 
         # hiddenTags
         if getattr(old, 'hiddenTags', None):
-            new.hiddenTags = old.hiddenTags
+            new.hiddenTags = safe_utf8(old.hiddenTags)
             logger.info("{0} hiddenTags added".format(new_path))
 
         # isearchTags
         if getattr(old, 'isearchTags', None):
-            new.isearchTags = old.isearchTags
+            new.isearchTags = safe_utf8(old.isearchTags)
             logger.info("{0} isearchTags added".format(new_path))
 
         # iamTags
         if getattr(old, 'iamTags', None):
-            new.iamTags = old.iamTags
+            new.iamTags = safe_utf8(old.iamTags)
             logger.info("{0} iamTags added".format(new_path))
 
         interfaces = [

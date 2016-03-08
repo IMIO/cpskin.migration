@@ -96,7 +96,7 @@ def migratetodx(context):
         logger.info('Set timezone to Europe/Brussels')
         settings.portal_timezone = timezone
 
-    logger.information('install collective.z3cform.widgets')
+    logger.info('install collective.z3cform.widgets')
     ps.runAllImportStepsFromProfile('profile-collective.z3cform.widgets:default')
 
     migration_view = getMultiAdapter((portal, request), name=u'migrate_from_atct')

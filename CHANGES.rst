@@ -4,6 +4,12 @@ Changelog
 0.3.7 (unreleased)
 ------------------
 
+- Add loading plonetruegallery profile for adding galleryview on folder.
+  [bsuttor]
+
+- Add migration sticky.
+  [bsuttor]
+
 - First step removing cpskin3.
   [bsuttor]
 

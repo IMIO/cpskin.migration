@@ -4,6 +4,9 @@ Changelog
 0.3.7 (unreleased)
 ------------------
 
+- Do not use Standard tags, use default plone subjects instead.
+  [bsuttor]
+
 - Add loading plonetruegallery profile for adding galleryview on folder.
   [bsuttor]
 

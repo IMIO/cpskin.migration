@@ -96,6 +96,9 @@ def migratetodx(context):
         logger.info('Set timezone to Europe/Brussels')
         settings.portal_timezone = timezone
 
+    logger.information('install collective.z3cform.widgets')
+    ps.runAllImportStepsFromProfile('profile-collective.z3cform.widgets:default')
+
     migration_view = getMultiAdapter((portal, request), name=u'migrate_from_atct')
     # call the migration-view above to actually migrate stuff.
 
@@ -134,7 +137,9 @@ def migratetodx(context):
     logger.info('Fix image scales')
     fix_at_image_scales(portal)
     fix_portlets_image_scales(portal)
-    remove_old_collective_content_lead_image(portal)
+    logger.information('collective.contentleadimage uninstallation')
+    ps.runAllImportStepsFromProfile('profile-collective.contentleadimage:uninstall')
+    logger.info('Apply plonetruegallery step for adding folder view')
     ps.runImportStepFromProfile('profile-collective.plonetruegallery:default', 'typeinfo')
 
 
@@ -286,21 +291,21 @@ def is_pam_installed_and_not_used(portal):
 def enabled_behaviors(portal):
     types = {
         'Document': [
-            'cpskin.core.behaviors.metadata.IStandardTags',
+            # 'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
             'plone.app.contenttypes.behaviors.leadimage.ILeadImage',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Event': [
-            'cpskin.core.behaviors.metadata.IStandardTags',
+            # 'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
             'plone.app.contenttypes.behaviors.leadimage.ILeadImage',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Folder': [
-            'cpskin.core.behaviors.metadata.IStandardTags',
+            # 'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
@@ -308,13 +313,13 @@ def enabled_behaviors(portal):
             'eea.facetednavigation.subtypes.interfaces.IPossibleFacetedNavigable',
             'collective.plonetruegallery.interfaces.IGallery'],
         'News Item': [
-            'cpskin.core.behaviors.metadata.IStandardTags',
+            # 'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Collection': [
-            'cpskin.core.behaviors.metadata.IStandardTags',
+            # 'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
@@ -349,13 +354,6 @@ def remove_old_import_step(setup):
         logger.info("Old %s import step removed from import registry.", old_step)
 
 
-def remove_old_collective_content_lead_image(portal):
-    """Remove collective.contentleadimage, it's now in plone core."""
-    ps = api.portal.get_tool(name='portal_setup')
-    ps.runAllImportStepsFromProfile('profile-collective.contentleadimage:uninstall')
-    logger.information('collective.contentleadimage uninstalled')
-
-
 @implementer(ICustomMigrator)
 @adapter(Interface)
 class CpskinMigrator(object):
@@ -368,7 +366,8 @@ class CpskinMigrator(object):
 
         # standardTags
         if getattr(old, 'standardTags', None):
-            new.standardTags = safe_utf8(old.standardTags)
+            # new.standardTags = safe_utf8(old.standardTags)
+            new.subjects = safe_utf8(old.standardTags)
             logger.info("{0} standardTags added".format(new_path))
 
         # hiddenTags

@@ -137,6 +137,7 @@ def migratetodx(context):
     remove_old_collective_content_lead_image(portal)
 
 
+
 # Old scale name to new scale name
 IMAGE_SCALE_MAP = {
     'icon': 'icon',
@@ -323,10 +324,15 @@ def enabled_behaviors(portal):
     }
     for typename in types.keys():
         for behavior in types[typename]:
-            fti = queryUtility(IDexterityFTI, name=typename)
-            behaviors = list(fti.behaviors)
-            behaviors.append(behavior)
-            fti._updateProperty('behaviors', tuple(behaviors))
+            add_behavior(typename, behavior)
+
+
+def add_behavior(type_name, behavior_name):
+    fti = queryUtility(IDexterityFTI, name=type_name)
+    behaviors = list(fti.behaviors)
+    if behavior_name not in behaviors:
+        behaviors.append(behavior_name)
+        fti._updateProperty('behaviors', tuple(behaviors))
 
 
 def remove_old_import_step(setup):
@@ -347,7 +353,7 @@ def remove_old_collective_content_lead_image(portal):
     """Remove collective.contentleadimage, it's now in plone core."""
     ps = api.portal.get_tool(name='portal_setup')
     ps.runAllImportStepsFromProfile('profile-collective.contentleadimage:uninstall')
-    logger.info('collective.contentleadimage uninstalled')
+    logger.information('collective.contentleadimage uninstalled')
 
 
 @implementer(ICustomMigrator)
@@ -438,3 +444,10 @@ class CpskinMigrator(object):
                 logger.info("Add coord criteria for {0}".format(new_path))
             except:
                 pass
+
+        # migrate sticky
+        if getattr(old, 'sticky', None):
+            # TODO delete old portal_atct
+            add_behavior(new.portal_type, 'collective.sticky.behavior.ISticky')
+            new.sticky = old.sticky
+            logger.info("{0} sticky added".format(new_path))

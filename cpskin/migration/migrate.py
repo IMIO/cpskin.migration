@@ -135,7 +135,7 @@ def migratetodx(context):
     fix_at_image_scales(portal)
     fix_portlets_image_scales(portal)
     remove_old_collective_content_lead_image(portal)
-
+    ps.runImportStepFromProfile('profile-collective.plonetruegallery:default', 'typeinfo')
 
 
 # Old scale name to new scale name

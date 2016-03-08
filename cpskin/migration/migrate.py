@@ -137,7 +137,7 @@ def migratetodx(context):
     logger.info('Fix image scales')
     fix_at_image_scales(portal)
     fix_portlets_image_scales(portal)
-    logger.information('collective.contentleadimage uninstallation')
+    logger.info('collective.contentleadimage uninstallation')
     ps.runAllImportStepsFromProfile('profile-collective.contentleadimage:uninstall')
     logger.info('Apply plonetruegallery step for adding folder view')
     ps.runImportStepFromProfile('profile-collective.plonetruegallery:default', 'typeinfo')

@@ -291,21 +291,21 @@ def is_pam_installed_and_not_used(portal):
 def enabled_behaviors(portal):
     types = {
         'Document': [
-            # 'cpskin.core.behaviors.metadata.IStandardTags',
+            'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
             'plone.app.contenttypes.behaviors.leadimage.ILeadImage',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Event': [
-            # 'cpskin.core.behaviors.metadata.IStandardTags',
+            'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
             'plone.app.contenttypes.behaviors.leadimage.ILeadImage',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Folder': [
-            # 'cpskin.core.behaviors.metadata.IStandardTags',
+            'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
@@ -313,13 +313,13 @@ def enabled_behaviors(portal):
             'eea.facetednavigation.subtypes.interfaces.IPossibleFacetedNavigable',
             'collective.plonetruegallery.interfaces.IGallery'],
         'News Item': [
-            # 'cpskin.core.behaviors.metadata.IStandardTags',
+            'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Collection': [
-            # 'cpskin.core.behaviors.metadata.IStandardTags',
+            'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
@@ -366,8 +366,8 @@ class CpskinMigrator(object):
 
         # standardTags
         if getattr(old, 'standardTags', None):
-            # new.standardTags = safe_utf8(old.standardTags)
-            new.subjects = safe_utf8(old.standardTags)
+            new.standardTags = safe_utf8(old.standardTags)
+            # new.subjects = safe_utf8(old.standardTags)
             logger.info("{0} standardTags added".format(new_path))
 
         # hiddenTags

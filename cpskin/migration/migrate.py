@@ -96,8 +96,8 @@ def migratetodx(context):
         logger.info('Set timezone to Europe/Brussels')
         settings.portal_timezone = timezone
 
-    logger.info('install collective.z3cform.widgets')
-    ps.runAllImportStepsFromProfile('profile-collective.z3cform.widgets:default')
+    # logger.info('install collective.z3cform.widgets')
+    # ps.runAllImportStepsFromProfile('profile-collective.z3cform.widgets:default')
 
     migration_view = getMultiAdapter((portal, request), name=u'migrate_from_atct')
     # call the migration-view above to actually migrate stuff.
@@ -354,6 +354,10 @@ def remove_old_import_step(setup):
         logger.info("Old %s import step removed from import registry.", old_step)
 
 
+def safe_tags(oldtag):
+    return tuple(safe_utf8(tag) for tag in oldtag)
+
+
 @implementer(ICustomMigrator)
 @adapter(Interface)
 class CpskinMigrator(object):
@@ -366,23 +370,23 @@ class CpskinMigrator(object):
 
         # standardTags
         if getattr(old, 'standardTags', None):
-            new.standardTags = safe_utf8(old.standardTags)
-            # new.subjects = safe_utf8(old.standardTags)
+            new.standardTags = safe_tags(old.standardTags)
+            # new.subjects = old.standardTags
             logger.info("{0} standardTags added".format(new_path))
 
         # hiddenTags
         if getattr(old, 'hiddenTags', None):
-            new.hiddenTags = safe_utf8(old.hiddenTags)
+            new.hiddenTags = safe_tags(old.hiddenTags)
             logger.info("{0} hiddenTags added".format(new_path))
 
         # isearchTags
         if getattr(old, 'isearchTags', None):
-            new.isearchTags = safe_utf8(old.isearchTags)
+            new.isearchTags = safe_tags(old.isearchTags)
             logger.info("{0} isearchTags added".format(new_path))
 
         # iamTags
         if getattr(old, 'iamTags', None):
-            new.iamTags = safe_utf8(old.iamTags)
+            new.iamTags = safe_tags(old.iamTags)
             logger.info("{0} iamTags added".format(new_path))
 
         interfaces = [

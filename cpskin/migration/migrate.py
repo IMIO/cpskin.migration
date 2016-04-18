@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from collective.contentleadimage.leadimageprefs import ILeadImagePrefsForm
 from collective.geo.geographer.interfaces import IGeoreferenceable
 from collective.geo.behaviour.behaviour import Coordinates
 from collective.geo.geographer.interfaces import IWriteGeoreferenced
@@ -89,6 +90,8 @@ def migratetodx(context):
 
     logger.info("Enabled cpskin behavior for dx content types")
     enabled_behaviors(portal)
+
+    enabled_leadimage(portal)
 
     reg = getUtility(IRegistry)
     settings = reg.forInterface(IEventSettings, prefix="plone.app.event")
@@ -295,21 +298,18 @@ def enabled_behaviors(portal):
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
-            'plone.app.contenttypes.behaviors.leadimage.ILeadImage',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Event': [
             'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
-            'plone.app.contenttypes.behaviors.leadimage.ILeadImage',
             'collective.geo.behaviour.interfaces.ICoordinates'],
         'Folder': [
             'cpskin.core.behaviors.metadata.IStandardTags',
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
-            'plone.app.contenttypes.behaviors.leadimage.ILeadImage',
             'eea.facetednavigation.subtypes.interfaces.IPossibleFacetedNavigable',
             'collective.plonetruegallery.interfaces.IGallery'],
         'News Item': [
@@ -330,6 +330,14 @@ def enabled_behaviors(portal):
     for typename in types.keys():
         for behavior in types[typename]:
             add_behavior(typename, behavior)
+
+
+def enabled_leadimage(portal):
+    lead_iname = 'plone.app.contenttypes.behaviors.leadimage.ILeadImage'
+    prefs = ILeadImagePrefsForm(portal)
+    for typename in prefs.allowed_types:
+        add_behavior(typename, lead_iname)
+        logger.info("Enabled leadimage for {} content types".format(typename))
 
 
 def add_behavior(type_name, behavior_name):

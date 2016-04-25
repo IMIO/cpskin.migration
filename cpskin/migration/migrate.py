@@ -314,6 +314,7 @@ def enabled_behaviors(portal):
             'cpskin.core.behaviors.metadata.IHiddenTags',
             'cpskin.core.behaviors.metadata.IISearchTags',
             'cpskin.core.behaviors.metadata.IIAmTags',
+            'cpskin.core.behaviors.metadata.IUseKeywordHomepage',
             'eea.facetednavigation.subtypes.interfaces.IPossibleFacetedNavigable',
             'collective.plonetruegallery.interfaces.IGallery'],
         'News Item': [

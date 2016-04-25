@@ -32,6 +32,7 @@ from eea.facetednavigation.widgets.interfaces import IWidget
 from eea.facetednavigation.widgets.interfaces import IWidgetsInfo
 from eea.facetednavigation.widgets.resultsfilter.interfaces import IResultsFilterWidget
 from plone import api
+from plone.app.contenttypes.behaviors.leadimage import ILeadImage
 from plone.app.contenttypes.interfaces import IPloneAppContenttypesLayer
 from plone.app.contenttypes.migration.migration import ICustomMigrator
 from plone.app.event.interfaces import IEventSettings
@@ -43,6 +44,8 @@ from plone.portlets.constants import CONTEXT_BLACKLIST_STATUS_KEY
 from plone.portlets.interfaces import IPortletAssignmentMapping
 from plone.portlets.interfaces import IPortletManager
 from plone.registry.interfaces import IRegistry
+from Products.CMFPlone.interfaces.syndication import IFeedSettings
+from Products.CMFPlone.interfaces.syndication import ISyndicatable
 
 from zope.annotation.interfaces import IAnnotations
 from zope.component import adapter
@@ -98,7 +101,8 @@ def migratetodx(context):
     if not settings.portal_timezone:
         logger.info('Set timezone to Europe/Brussels')
         settings.portal_timezone = timezone
-
+        settings.first_weekday = 0
+        settings.available_timezones = ["Europe/Brussels"]
     # logger.info('install collective.z3cform.widgets')
     # ps.runAllImportStepsFromProfile('profile-collective.z3cform.widgets:default')
 
@@ -375,6 +379,10 @@ class CpskinMigrator(object):
 
     def migrate(self, old, new):
         new_path = "/".join(new.getPhysicalPath())
+        if ISyndicatable.providedBy(new):
+            old_feed_settings = IFeedSettings(old)
+            IFeedSettings(new).enabled = old_feed_settings.enabled
+            logger.info("{0} RSS enabled settings copied from old".format(new_path))
 
         # standardTags
         if getattr(old, 'standardTags', None):
@@ -462,3 +470,15 @@ class CpskinMigrator(object):
             add_behavior(new.portal_type, 'collective.sticky.behavior.ISticky')
             new.sticky = old.sticky
             logger.info("{0} sticky added".format(new_path))
+
+        # Rescales images
+        if ILeadImage.providedBy(new):
+            field = old.getField('leadImage')
+            if field is not None:
+                field.removeScales(old)
+                field.createScales(old)
+        if new.portal_type == "Image":
+            field = old.getField('image')
+            if field is not None:
+                field.removeScales(old)
+                field.createScales(old)

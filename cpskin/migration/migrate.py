@@ -58,6 +58,7 @@ from zope.interface import Interface
 from zope.interface import noLongerProvides
 
 import logging
+import uuid
 
 logger = logging.getLogger('cpskin.migration.migrate')
 timezone = 'Europe/Brussels'
@@ -79,6 +80,11 @@ def migratetodx(context):
     remove_old_import_step(ps)
     # Fix bug, sometimes obj with publish_and_hidden are still in navigation
     set_correctly_exclude_from_nav(pc)
+
+    # Sometimes we have ascii error into text
+    fix_transform_errors(portal)
+
+    fix_dubble_uid()
 
     logger.info('Starting rebuilding catalog')
     pc.clearFindAndRebuild()
@@ -148,6 +154,40 @@ def migratetodx(context):
     ps.runAllImportStepsFromProfile('profile-collective.contentleadimage:uninstall')
     logger.info('Apply plonetruegallery step for adding folder view')
     ps.runImportStepFromProfile('profile-collective.plonetruegallery:default', 'typeinfo')
+
+
+def fix_dubble_uid():
+    catalog = api.portal.get_tool('portal_catalog')
+    uids = []
+    for brain in catalog():
+        obj = brain.getObject()
+        uid = obj.UID()
+        if uid not in uids:
+            uids.append(uid)
+        else:
+            if getattr(obj, '_setUID', None):
+                newuid = str(uuid.uuid4()).replace('-', '')
+                obj._setUID(newuid)
+                obj.reindexObject()
+                logger.info('Set new uid {}, old was {}'.format(newuid, uid))
+            else:
+                logger.warning('No _setUID for {}'.format('/'.join(obj.getPhysicalPath())))
+
+
+def fix_transform_errors(portal):
+    catalog = api.portal.get_tool('portal_catalog')
+    portal_transforms = api.portal.get_tool('portal_transforms')
+    for brain in catalog(portal_type=('Document', 'News Item')):
+        obj = brain.getObject()
+        try:
+            text = obj.getText()
+            data = portal_transforms.convertTo('text/html', text, mimetype='text/-x-web-intelligent')
+            html = data.getData()
+        except:
+            api.content.delete(obj)
+            logger.warning(
+                "{0} removed because of ascii error".format(
+                    "/".join(obj.getPhysicalPath())))
 
 
 # Old scale name to new scale name
@@ -385,6 +425,11 @@ class CpskinMigrator(object):
             IFeedSettings(new).enabled = old_feed_settings.enabled
             logger.info("{0} RSS enabled settings copied from old".format(new_path))
 
+        # XXX Merge subject and standard tags
+        if old.Subject():
+            new.standardTags = safe_tags(old.Subject())
+            logger.info("{0} standardTags added from subjects".format(new_path))
+
         # standardTags
         if getattr(old, 'standardTags', None):
             new.standardTags = safe_tags(old.standardTags)
@@ -472,14 +517,16 @@ class CpskinMigrator(object):
             new.sticky = old.sticky
             logger.info("{0} sticky added".format(new_path))
 
-        # Rescales images
-        if ILeadImage.providedBy(new):
-            field = old.getField('leadImage')
-            if field is not None:
-                field.removeScales(old)
-                field.createScales(old)
-        if new.portal_type == "Image":
-            field = old.getField('image')
-            if field is not None:
-                field.removeScales(old)
-                field.createScales(old)
+        # # Rescales images
+        # if ILeadImage.providedBy(new):
+        #     field = old.getField('leadImage')
+        #     if field is not None:
+        #         field.removeScales(old)
+        #         field.createScales(old)
+        # if new.portal_type == "Image":
+        #     field = old.getField('image')
+        #     if field is not None:
+        #         field.removeScales(old)
+        #         field.createScales(old)
+
+# [brain for brain in catalog() if brain.getObject().text and 'accordion_accueil' in brain.getObject().text.raw]

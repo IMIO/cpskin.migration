@@ -78,6 +78,7 @@ def migratetodx(context):
     ps = api.portal.get_tool(name='portal_setup')
     # clean up old plone.multilingualbehaviors
     remove_old_import_step(ps)
+    remove_old_topics()
     # Fix bug, sometimes obj with publish_and_hidden are still in navigation
     set_correctly_exclude_from_nav(pc)
 
@@ -391,6 +392,16 @@ def add_behavior(type_name, behavior_name):
     if behavior_name not in behaviors:
         behaviors.append(behavior_name)
         fti._updateProperty('behaviors', tuple(behaviors))
+
+
+def remove_old_topics():
+    catalog = api.portal.get_tool('portal_catalog')
+    for brain in catalog(portal_type=('Topic',)):
+        obj = brain.getObject()
+        api.content.delete(obj)
+        logger.warning(
+            "{0} removed because it's a old Topic".format(
+                "/".join(obj.getPhysicalPath())))
 
 
 def remove_old_import_step(setup):

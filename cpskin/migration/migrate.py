@@ -84,7 +84,7 @@ def migratetodx(context):
     # Sometimes we have ascii error into text
     fix_transform_errors(portal)
 
-    fix_dubble_uid()
+    # fix_dubble_uid()
 
     logger.info('Starting rebuilding catalog')
     pc.clearFindAndRebuild()
@@ -176,14 +176,14 @@ def fix_dubble_uid():
 
 def fix_transform_errors(portal):
     catalog = api.portal.get_tool('portal_catalog')
-    portal_transforms = api.portal.get_tool('portal_transforms')
+    # portal_transforms = api.portal.get_tool('portal_transforms')
     for brain in catalog(portal_type=('Document', 'News Item')):
         obj = brain.getObject()
         try:
-            text = obj.getText()
-            data = portal_transforms.convertTo('text/html', text, mimetype='text/-x-web-intelligent')
-            html = data.getData()
-        except:
+            obj.getText()
+            # data = portal_transforms.convertTo('text/html', text, mimetype='text/-x-web-intelligent')
+            # html = data.getData()
+        except UnicodeDecodeError:
             api.content.delete(obj)
             logger.warning(
                 "{0} removed because of ascii error".format(
@@ -528,5 +528,3 @@ class CpskinMigrator(object):
         #     if field is not None:
         #         field.removeScales(old)
         #         field.createScales(old)
-
-# [brain for brain in catalog() if brain.getObject().text and 'accordion_accueil' in brain.getObject().text.raw]

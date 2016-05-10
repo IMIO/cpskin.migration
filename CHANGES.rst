@@ -4,6 +4,9 @@ Changelog
 0.3.7 (unreleased)
 ------------------
 
+- Check IDirectAccess during migration.
+  [bsuttor]
+
 - Do not use Standard tags, use default plone subjects instead.
   [bsuttor]
 

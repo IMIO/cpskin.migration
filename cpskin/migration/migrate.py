@@ -15,6 +15,7 @@ from cpskin.core.interfaces import IVideoCollection
 from cpskin.core.utils import safe_utf8
 from cpskin.core.viewlets.interfaces import IViewletMenuToolsBox
 from cpskin.core.viewlets.interfaces import IViewletMenuToolsFaceted
+from cpskin.menu.interfaces import IDirectAccess
 from cpskin.menu.interfaces import IFourthLevelNavigation
 
 from eea.facetednavigation.criteria.handler import Criteria
@@ -473,6 +474,7 @@ class CpskinMigrator(object):
             IViewletMenuToolsBox,
             IViewletMenuToolsFaceted,
             IFourthLevelNavigation,
+            IDirectAccess,
             IFacetedNavigable,
             IDisableSmartFacets,
             IHidePloneLeftColumn,

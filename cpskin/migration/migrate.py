@@ -156,6 +156,8 @@ def migratetodx(context):
     ps.runAllImportStepsFromProfile('profile-collective.contentleadimage:uninstall')
     logger.info('Apply plonetruegallery step for adding folder view')
     ps.runImportStepFromProfile('profile-collective.plonetruegallery:default', 'typeinfo')
+    logger.info('Apply imio.media profile for adding oembed view')
+    ps.runImportStepFromProfile('profile-imio.media:default', 'typeinfo')
 
 
 def fix_dubble_uid():

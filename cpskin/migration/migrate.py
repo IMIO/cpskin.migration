@@ -158,6 +158,8 @@ def migratetodx(context):
     ps.runImportStepFromProfile('profile-collective.plonetruegallery:default', 'typeinfo')
     logger.info('Apply imio.media profile for adding oembed view')
     ps.runImportStepFromProfile('profile-imio.media:default', 'typeinfo')
+    logger.info('Apply collecite.geo.leaflet profile for adding geo-leaflet view')
+    ps.runImportStepFromProfile('profile-collecite.geo.leaflet:default', 'typeinfo')
 
 
 def fix_dubble_uid():

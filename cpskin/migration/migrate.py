@@ -191,13 +191,14 @@ def clean_unexisting_objects_in_versionning():
 
     # brains = catalog()
     brains_len = len(brains)
-    logger.info("{0} objects in portal".format(brains_len))
-    thresold = 1000
+    logger.info("{0} objects versioned".format(brains_len))
+    thresold = 100
     j = 0
     for brain in brains:
         try:
-            if j % thresold:
-                logger.info("{0}/{1} objects".format(j, thresold))
+            if j % thresold == 0:
+                logger.info("{0}/{1} objects".format(j, brains_len))
+            j += 1
             obj = brain.getObject()
             history = portal_repository.getHistoryMetadata(obj)
             if history:

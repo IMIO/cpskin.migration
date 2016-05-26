@@ -33,7 +33,6 @@ from eea.facetednavigation.widgets.interfaces import IWidget
 from eea.facetednavigation.widgets.interfaces import IWidgetsInfo
 from eea.facetednavigation.widgets.resultsfilter.interfaces import IResultsFilterWidget
 from plone import api
-from plone.app.contenttypes.behaviors.leadimage import ILeadImage
 from plone.app.contenttypes.interfaces import IPloneAppContenttypesLayer
 from plone.app.contenttypes.migration.migration import ICustomMigrator
 from plone.app.event.interfaces import IEventSettings
@@ -48,6 +47,10 @@ from plone.registry.interfaces import IRegistry
 from Products.CMFPlone.interfaces.syndication import IFeedSettings
 from Products.CMFPlone.interfaces.syndication import ISyndicatable
 
+from z3c.relationfield.event import updateRelations
+from z3c.relationfield.interfaces import IHasRelations
+from zc.relation.interfaces import ICatalog
+from ZODB.POSException import POSKeyError
 from zope.annotation.interfaces import IAnnotations
 from zope.component import adapter
 from zope.component import getMultiAdapter
@@ -57,6 +60,7 @@ from zope.interface import alsoProvides
 from zope.interface import implementer
 from zope.interface import Interface
 from zope.interface import noLongerProvides
+
 
 import logging
 import uuid
@@ -73,10 +77,16 @@ def migratetodx(context):
     if is_pam_installed_and_not_used(portal):
         logger.info('Uninstalling PAM')
         ps = api.portal.get_tool(name='portal_setup')
-        ps.runAllImportStepsFromProfile('profile-plone.app.multilingual:uninstall')
+        ps.runAllImportStepsFromProfile(
+            'profile-plone.app.multilingual:uninstall')
         noLongerProvides(request, IPloneAppMultilingualInstalled)
     pc = api.portal.get_tool(name='portal_catalog')
     ps = api.portal.get_tool(name='portal_setup')
+
+    # clean up old versionning
+    clean_unexisting_objects_in_versionning()
+    reindex_relations()
+
     # clean up old plone.multilingualbehaviors
     remove_old_import_step(ps)
     remove_old_topics()
@@ -97,7 +107,8 @@ def migratetodx(context):
     alsoProvides(request, IPloneAppContenttypesLayer)
 
     # set view for dexteity content types
-    ps.runImportStepFromProfile('profile-cpskin.migration:migratetodx', 'typeinfo')
+    ps.runImportStepFromProfile(
+        'profile-cpskin.migration:migratetodx', 'typeinfo')
 
     logger.info("Enabled cpskin behavior for dx content types")
     enabled_behaviors(portal)
@@ -114,7 +125,8 @@ def migratetodx(context):
     # logger.info('install collective.z3cform.widgets')
     # ps.runAllImportStepsFromProfile('profile-collective.z3cform.widgets:default')
 
-    migration_view = getMultiAdapter((portal, request), name=u'migrate_from_atct')
+    migration_view = getMultiAdapter(
+        (portal, request), name=u'migrate_from_atct')
     # call the migration-view above to actually migrate stuff.
 
     # Do not use plone.memoize cache during migration
@@ -153,13 +165,88 @@ def migratetodx(context):
     fix_at_image_scales(portal)
     fix_portlets_image_scales(portal)
     logger.info('collective.contentleadimage uninstallation')
-    ps.runAllImportStepsFromProfile('profile-collective.contentleadimage:uninstall')
+    ps.runAllImportStepsFromProfile(
+        'profile-collective.contentleadimage:uninstall')
     logger.info('Apply plonetruegallery step for adding folder view')
-    ps.runImportStepFromProfile('profile-collective.plonetruegallery:default', 'typeinfo')
+    ps.runImportStepFromProfile(
+        'profile-collective.plonetruegallery:default', 'typeinfo')
     logger.info('Apply imio.media profile for adding oembed view')
     ps.runImportStepFromProfile('profile-imio.media:default', 'typeinfo')
-    logger.info('Apply collecite.geo.leaflet profile for adding geo-leaflet view')
-    ps.runImportStepFromProfile('profile-collecite.geo.leaflet:default', 'typeinfo')
+    logger.info(
+        'Apply collecite.geo.leaflet profile for adding geo-leaflet view')
+    ps.runImportStepFromProfile(
+        'profile-collecite.geo.leaflet:default', 'typeinfo')
+
+
+def clean_unexisting_objects_in_versionning():
+    # Products.CMFEditions.interfaces.IVersioned
+    portal = api.portal.get()
+    catalog = api.portal.get_tool('portal_catalog')
+    portal_repository = api.portal.get_tool('portal_repository')
+    portal_historiesstorage = api.portal.get_tool('portal_historiesstorage')
+    statistics = portal_historiesstorage.zmi_getStorageStatistics()
+    shadowstorage = portal_historiesstorage._getShadowStorage()._storage
+    versions_repo = portal_historiesstorage._getZVCRepo()
+
+    # Remove history of deleted objects
+    i = 0
+    for historyinfo in statistics['deleted']:
+        history_id = historyinfo['history_id']
+        history = portal_historiesstorage._getShadowHistory(history_id)
+        for zvc_key in set([
+                portal_historiesstorage._getZVCAccessInfo(
+                    history_id, selector, True)[0]
+                for selector in history._available]):
+            if zvc_key in versions_repo._histories:
+                i += 1
+                del versions_repo._histories[zvc_key]
+    logger.info("{0} history deleted".format(str(i)))
+    brains = catalog()
+    brains_len = len(brains)
+    logger.info("{0} objects in portal".format(brains_len))
+    thresold = 1000
+    j = 0
+    for brain in brains:
+        try:
+            if j % thresold:
+                logger.info("{0}/{1} objects".format(j, thresold))
+            obj = brain.getObject()
+            history = portal_repository.getHistoryMetadata(obj)
+            if history:
+                length = history.getLength(countPurged=False)
+                for i in xrange(length - 1, -1, -1):
+                    try:
+                        version = portal_repository.retrieve(obj, i)
+                        annotations = IAnnotations(version.object)
+                        for key in annotations.keys():
+                            if key.startswith('collective.alias'):
+                                del annotations[key]
+                    except POSKeyError:
+                        pass
+        except KeyError:
+            pass
+    # and clean :
+    #    'CardConfig' from module 'Products.directory.tool.CardConfig'
+    #    'Card' from module 'Products.directory.content.Card'
+    #    'TTGoogleMap' from module 'tecnoteca.googlemap.content.ttgooglemap'
+    #    'TTGoogleMapCategory' from module 'tecnoteca.googlemap.content.ttgooglemapcategory'
+    #    'ToolCPSkin' from module 'acptheme.cpskin3.ToolCPSkin'
+    #    'Alias' from module 'collective.alias.content'
+    #    'ToolDirectory' from module 'Products.directory.tool.ToolDirectory'
+
+
+def reindex_relations():
+    """Clear the relation catalog to fix issues with interfaces that don't exist anymore.
+    This actually fixes the from_interfaces_flattened and to_interfaces_flattened indexes.
+    """
+    rcatalog = getUtility(ICatalog)
+    rcatalog.clear()
+    catalog = api.portal.get_tool('portal_catalog')
+    brains = catalog.searchResults(
+        object_provides=IHasRelations.__identifier__)
+    for brain in brains:
+        obj = brain.getObject()
+        updateRelations(obj, None)
 
 
 def fix_dubble_uid():
@@ -177,7 +264,8 @@ def fix_dubble_uid():
                 obj.reindexObject()
                 logger.info('Set new uid {}, old was {}'.format(newuid, uid))
             else:
-                logger.warning('No _setUID for {}'.format('/'.join(obj.getPhysicalPath())))
+                logger.warning('No _setUID for {}'.format(
+                    '/'.join(obj.getPhysicalPath())))
 
 
 def fix_transform_errors(portal):
@@ -300,9 +388,11 @@ def fix_portlets_image_scales(obj):
     managers = [u'plone.leftcolumn', u'plone.rightcolumn']
 
     # copy information which categories are hidden for which manager
-    blacklist_status = IAnnotations(obj).get(CONTEXT_BLACKLIST_STATUS_KEY, None)
+    blacklist_status = IAnnotations(obj).get(
+        CONTEXT_BLACKLIST_STATUS_KEY, None)
     if blacklist_status is not None:
-        IAnnotations(obj)[CONTEXT_BLACKLIST_STATUS_KEY] = deepcopy(blacklist_status)
+        IAnnotations(obj)[CONTEXT_BLACKLIST_STATUS_KEY] = deepcopy(
+            blacklist_status)
 
     # copy all portlet assignments (visibilty is stored as annotation
     # on the assignments and gets copied here too)
@@ -420,7 +510,8 @@ def remove_old_import_step(setup):
         # (portal_setup) that it has changed otherwise this change is
         # not persisted.
         setup._p_changed = True
-        logger.info("Old %s import step removed from import registry.", old_step)
+        logger.info(
+            "Old %s import step removed from import registry.", old_step)
 
 
 def safe_tags(oldtag):
@@ -439,12 +530,14 @@ class CpskinMigrator(object):
         if ISyndicatable.providedBy(new):
             old_feed_settings = IFeedSettings(old)
             IFeedSettings(new).enabled = old_feed_settings.enabled
-            logger.info("{0} RSS enabled settings copied from old".format(new_path))
+            logger.info(
+                "{0} RSS enabled settings copied from old".format(new_path))
 
         # XXX Merge subject and standard tags
         if old.Subject():
             new.standardTags = safe_tags(old.Subject())
-            logger.info("{0} standardTags added from subjects".format(new_path))
+            logger.info(
+                "{0} standardTags added from subjects".format(new_path))
 
         # standardTags
         if getattr(old, 'standardTags', None):
@@ -496,7 +589,8 @@ class CpskinMigrator(object):
         for interface in interfaces:
             if interface.providedBy(old):
                 alsoProvides(new, interface)
-                logger.info("{0} provides {1}".format(new_path, str(interface)))
+                logger.info("{0} provides {1}".format(
+                    new_path, str(interface)))
 
         # XXX choose between old and new
         fix_portlets_image_scales(old)

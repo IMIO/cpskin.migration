@@ -180,28 +180,16 @@ def migratetodx(context):
 
 def clean_unexisting_objects_in_versionning():
     # Products.CMFEditions.interfaces.IVersioned
-    portal = api.portal.get()
+    from Products.CMFEditions.interfaces import IVersioned
     catalog = api.portal.get_tool('portal_catalog')
+    brains = catalog(object_provides=IVersioned.__identifier__)
+
+    portal = api.portal.get()
+    # catalog = api.portal.get_tool('portal_catalog')
     portal_repository = api.portal.get_tool('portal_repository')
     portal_historiesstorage = api.portal.get_tool('portal_historiesstorage')
-    statistics = portal_historiesstorage.zmi_getStorageStatistics()
-    shadowstorage = portal_historiesstorage._getShadowStorage()._storage
-    versions_repo = portal_historiesstorage._getZVCRepo()
 
-    # Remove history of deleted objects
-    i = 0
-    for historyinfo in statistics['deleted']:
-        history_id = historyinfo['history_id']
-        history = portal_historiesstorage._getShadowHistory(history_id)
-        for zvc_key in set([
-                portal_historiesstorage._getZVCAccessInfo(
-                    history_id, selector, True)[0]
-                for selector in history._available]):
-            if zvc_key in versions_repo._histories:
-                i += 1
-                del versions_repo._histories[zvc_key]
-    logger.info("{0} history deleted".format(str(i)))
-    brains = catalog()
+    # brains = catalog()
     brains_len = len(brains)
     logger.info("{0} objects in portal".format(brains_len))
     thresold = 1000
@@ -225,6 +213,25 @@ def clean_unexisting_objects_in_versionning():
                         pass
         except KeyError:
             pass
+
+    statistics = portal_historiesstorage.zmi_getStorageStatistics()
+    shadowstorage = portal_historiesstorage._getShadowStorage()._storage
+    versions_repo = portal_historiesstorage._getZVCRepo()
+
+    # Remove history of deleted objects
+    i = 0
+    for historyinfo in statistics['deleted']:
+        history_id = historyinfo['history_id']
+        history = portal_historiesstorage._getShadowHistory(history_id)
+        for zvc_key in set([
+                portal_historiesstorage._getZVCAccessInfo(
+                    history_id, selector, True)[0]
+                for selector in history._available]):
+            if zvc_key in versions_repo._histories:
+                i += 1
+                del versions_repo._histories[zvc_key]
+
+    logger.info("{0} history deleted".format(str(i)))
     # and clean :
     #    'CardConfig' from module 'Products.directory.tool.CardConfig'
     #    'Card' from module 'Products.directory.content.Card'

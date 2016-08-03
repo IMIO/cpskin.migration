@@ -84,8 +84,8 @@ def migratetodx(context):
     ps = api.portal.get_tool(name='portal_setup')
 
     # clean up old versionning
-    clean_unexisting_objects_in_versionning()
-    reindex_relations()
+    # clean_unexisting_objects_in_versionning()
+    # reindex_relations()
 
     # clean up old plone.multilingualbehaviors
     remove_old_import_step(ps)

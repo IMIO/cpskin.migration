@@ -35,6 +35,7 @@ from eea.facetednavigation.widgets.resultsfilter.interfaces import IResultsFilte
 from plone import api
 from plone.app.contenttypes.interfaces import IPloneAppContenttypesLayer
 from plone.app.contenttypes.migration.migration import ICustomMigrator
+from plone.app.contenttypes.migration.vocabularies import ATCT_LIST
 from plone.app.event.interfaces import IEventSettings
 from plone.app.event.dx.interfaces import IDXEvent
 from plone.app.multilingual.interfaces import IPloneAppMultilingualInstalled
@@ -75,7 +76,7 @@ def migratetodx(context):
     portal = api.portal.get()
     request = getattr(portal, 'REQUEST', None)
     if is_pam_installed_and_not_used(portal):
-        logger.info('Uninstalling PAM')
+        logger.warn('Uninstalling PAM')
         ps = api.portal.get_tool(name='portal_setup')
         ps.runAllImportStepsFromProfile(
             'profile-plone.app.multilingual:uninstall')
@@ -98,11 +99,11 @@ def migratetodx(context):
 
     # fix_dubble_uid()
 
-    logger.info('Starting rebuilding catalog')
+    logger.warn('Starting rebuilding catalog')
     pc.clearFindAndRebuild()
 
-    logger.info('Upgrate to dx')
-    logger.info("Installing plone.app.contenttypes")
+    logger.warn('Upgrate to dx')
+    logger.warn("Installing plone.app.contenttypes")
     ps.runAllImportStepsFromProfile('profile-plone.app.contenttypes:default')
     alsoProvides(request, IPloneAppContenttypesLayer)
 
@@ -110,7 +111,7 @@ def migratetodx(context):
     ps.runImportStepFromProfile(
         'profile-cpskin.migration:migratetodx', 'typeinfo')
 
-    logger.info("Enabled cpskin behavior for dx content types")
+    logger.warn("Enabled cpskin behavior for dx content types")
     enabled_behaviors(portal)
 
     enabled_leadimage(portal)
@@ -118,11 +119,11 @@ def migratetodx(context):
     reg = getUtility(IRegistry)
     settings = reg.forInterface(IEventSettings, prefix="plone.app.event")
     if not settings.portal_timezone:
-        logger.info('Set timezone to Europe/Brussels')
+        logger.warn('Set timezone to Europe/Brussels')
         settings.portal_timezone = timezone
         settings.first_weekday = 0
         settings.available_timezones = ["Europe/Brussels"]
-    # logger.info('install collective.z3cform.widgets')
+    # logger.warn('install collective.z3cform.widgets')
     # ps.runAllImportStepsFromProfile('profile-collective.z3cform.widgets:default')
 
     migration_view = getMultiAdapter(
@@ -152,27 +153,27 @@ def migratetodx(context):
         'BlobImage',
         'Topic',
     ]
-    logger.info('Starting migrate {0}'.format(content_types))
+    logger.warn('Starting migrate {0}'.format(content_types))
     results = migration_view(
         migrate=True,
         content_types=content_types,
         migrate_schemaextended_content=True,
         migrate_references=True,
     )
-    logger.info(results)
+    logger.warn(results)
 
-    logger.info('Fix image scales')
+    logger.warn('Fix image scales')
     fix_at_image_scales(portal)
     fix_portlets_image_scales(portal)
-    logger.info('collective.contentleadimage uninstallation')
+    logger.warn('collective.contentleadimage uninstallation')
     ps.runAllImportStepsFromProfile(
         'profile-collective.contentleadimage:uninstall')
-    logger.info('Apply plonetruegallery step for adding folder view')
+    logger.warn('Apply plonetruegallery step for adding folder view')
     ps.runImportStepFromProfile(
         'profile-collective.plonetruegallery:default', 'typeinfo')
-    logger.info('Apply imio.media profile for adding oembed view')
+    logger.warn('Apply imio.media profile for adding oembed view')
     ps.runImportStepFromProfile('profile-imio.media:default', 'typeinfo')
-    logger.info(
+    logger.warn(
         'Apply collective.geo.leaflet profile for adding geo-leaflet view')
     ps.runImportStepFromProfile(
         'profile-collective.geo.leaflet:default', 'typeinfo')
@@ -191,13 +192,13 @@ def clean_unexisting_objects_in_versionning():
 
     # brains = catalog()
     brains_len = len(brains)
-    logger.info("{0} objects versioned".format(brains_len))
+    logger.warn("{0} objects versioned".format(brains_len))
     thresold = 100
     j = 0
     for brain in brains:
         try:
             if j % thresold == 0:
-                logger.info("{0}/{1} objects".format(j, brains_len))
+                logger.warn("{0}/{1} objects".format(j, brains_len))
             j += 1
             obj = brain.getObject()
             history = portal_repository.getHistoryMetadata(obj)
@@ -232,7 +233,7 @@ def clean_unexisting_objects_in_versionning():
                 i += 1
                 del versions_repo._histories[zvc_key]
 
-    logger.info("{0} history deleted".format(str(i)))
+    logger.warn("{0} history deleted".format(str(i)))
     # and clean :
     #    'CardConfig' from module 'Products.directory.tool.CardConfig'
     #    'Card' from module 'Products.directory.content.Card'
@@ -270,7 +271,7 @@ def fix_dubble_uid():
                 newuid = str(uuid.uuid4()).replace('-', '')
                 obj._setUID(newuid)
                 obj.reindexObject()
-                logger.info('Set new uid {}, old was {}'.format(newuid, uid))
+                logger.warn('Set new uid {}, old was {}'.format(newuid, uid))
             else:
                 logger.warning('No _setUID for {}'.format(
                     '/'.join(obj.getPhysicalPath())))
@@ -344,7 +345,7 @@ def set_correctly_exclude_from_nav(pc):
         obj = brain.getObject()
         obj.setExcludeFromNav(True)
         obj.reindexObject()
-        logger.info('set exclude from nav for {}'.format(brain.getPath()))
+        logger.warn('set exclude from nav for {}'.format(brain.getPath()))
 
     brains = [folder for folder in pc(
         review_state='published_and_shown',
@@ -353,7 +354,7 @@ def set_correctly_exclude_from_nav(pc):
         obj = brain.getObject()
         obj.setExcludeFromNav(False)
         obj.reindexObject()
-        logger.info('unset exclude from nav for {}'.format(brain.getPath()))
+        logger.warn('unset exclude from nav for {}'.format(brain.getPath()))
 
 
 def fix_at_image_scales(context):
@@ -361,7 +362,7 @@ def fix_at_image_scales(context):
     query = {}
     query['object_provides'] = 'plone.app.contenttypes.behaviors.richtext.IRichText'  # noqa
     results = catalog(**query)
-    logger.info('There are {0} in total, stating migration...'.format(
+    logger.warn('There are {0} in total, stating migration...'.format(
         len(results)))
     for result in results:
         try:
@@ -383,7 +384,7 @@ def fix_at_image_scales(context):
                     encoding=text.encoding
                 )
                 obj.reindexObject(idxs=('SearchableText', ))
-                logger.info('Text cleanup for {0}'.format(
+                logger.warn('Text cleanup for {0}'.format(
                     '/'.join(obj.getPhysicalPath())
                 ))
 
@@ -423,17 +424,17 @@ def is_pam_installed_and_not_used(portal):
     installed = False
     used = False
     if installer.isProductInstalled('plone.app.multilingual'):
-        logger.info('PAM is installed')
+        logger.warn('PAM is installed')
         installed = True
 
     catalog = api.portal.get_tool('portal_catalog')
     brains = catalog(portal_type=('LRF', 'LIF'))
     if len(brains) != 0:
-        logger.info('PAM is used')
+        logger.warn('PAM is used')
         used = True
 
     if installed and not used:
-        logger.info('PAM is installed and NOT used')
+        logger.warn('PAM is installed and NOT used')
         return True
     else:
         return False
@@ -486,7 +487,7 @@ def enabled_leadimage(portal):
     prefs = ILeadImagePrefsForm(portal)
     for typename in prefs.allowed_types:
         add_behavior(typename, lead_iname)
-        logger.info("Enabled leadimage for {} content types".format(typename))
+        logger.warn("Enabled leadimage for {} content types".format(typename))
 
 
 def add_behavior(type_name, behavior_name):
@@ -518,7 +519,7 @@ def remove_old_import_step(setup):
         # (portal_setup) that it has changed otherwise this change is
         # not persisted.
         setup._p_changed = True
-        logger.info(
+        logger.warn(
             "Old %s import step removed from import registry.", old_step)
 
 
@@ -534,39 +535,46 @@ class CpskinMigrator(object):
         self.context = context
 
     def migrate(self, old, new):
+        portal_catalog = api.portal.get_tool('portal_catalog')
+        query = {}
+        portal_type = old.portal_type
+        ATCT = ATCT_LIST.get(portal_type)
+        query['object_provides'] = ATCT.get('iface').__identifier__
+        brains = portal_catalog(query)
+        logger.warn('--- {0} {1} to migrate ---'.format(len(brains), portal_type))
         new_path = "/".join(new.getPhysicalPath())
         if ISyndicatable.providedBy(new):
             old_feed_settings = IFeedSettings(old)
             IFeedSettings(new).enabled = old_feed_settings.enabled
-            logger.info(
+            logger.warn(
                 "{0} RSS enabled settings copied from old".format(new_path))
 
         # XXX Merge subject and standard tags
         if old.Subject():
             new.standardTags = safe_tags(old.Subject())
-            logger.info(
+            logger.warn(
                 "{0} standardTags added from subjects".format(new_path))
 
         # standardTags
         if getattr(old, 'standardTags', None):
             new.standardTags = safe_tags(old.standardTags)
             # new.subjects = old.standardTags
-            logger.info("{0} standardTags added".format(new_path))
+            logger.warn("{0} standardTags added".format(new_path))
 
         # hiddenTags
         if getattr(old, 'hiddenTags', None):
             new.hiddenTags = safe_tags(old.hiddenTags)
-            logger.info("{0} hiddenTags added".format(new_path))
+            logger.warn("{0} hiddenTags added".format(new_path))
 
         # isearchTags
         if getattr(old, 'isearchTags', None):
             new.isearchTags = safe_tags(old.isearchTags)
-            logger.info("{0} isearchTags added".format(new_path))
+            logger.warn("{0} isearchTags added".format(new_path))
 
         # iamTags
         if getattr(old, 'iamTags', None):
             new.iamTags = safe_tags(old.iamTags)
-            logger.info("{0} iamTags added".format(new_path))
+            logger.warn("{0} iamTags added".format(new_path))
 
         interfaces = [
             IAlbumCollection,
@@ -597,7 +605,7 @@ class CpskinMigrator(object):
         for interface in interfaces:
             if interface.providedBy(old):
                 alsoProvides(new, interface)
-                logger.info("{0} provides {1}".format(
+                logger.warn("{0} provides {1}".format(
                     new_path, str(interface)))
 
         # XXX choose between old and new
@@ -616,7 +624,7 @@ class CpskinMigrator(object):
         if IFacetedNavigable.providedBy(old):
             criteria = Criteria(new)
             criteria._update(ICriteria(old).criteria)
-            logger.info("Add facteted criteria for {0}".format(new_path))
+            logger.warn("Add facteted criteria for {0}".format(new_path))
 
         # migrate geolocalisation
         if IGeoreferenceable.providedBy(old):
@@ -625,7 +633,7 @@ class CpskinMigrator(object):
                 old_coord = Coordinates(old).coordinates
                 new_coord = Coordinates(new)
                 new_coord.coordinates = old_coord
-                logger.info("Add coord criteria for {0}".format(new_path))
+                logger.warn("Add coord criteria for {0}".format(new_path))
             except:
                 pass
 
@@ -634,7 +642,7 @@ class CpskinMigrator(object):
             # TODO delete old portal_atct
             add_behavior(new.portal_type, 'collective.sticky.behavior.ISticky')
             new.sticky = old.sticky
-            logger.info("{0} sticky added".format(new_path))
+            logger.warn("{0} sticky added".format(new_path))
 
         # # Rescales images
         # if ILeadImage.providedBy(new):

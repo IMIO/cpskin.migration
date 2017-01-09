@@ -38,6 +38,7 @@ setup(name='cpskin.migration',
       install_requires=[
           'setuptools',
           'cpskin.policy',
+          'cpskin.core',
           # 'acptheme.cpskin3',
           'plone.api',
           # -*- Extra requirements: -*-

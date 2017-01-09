@@ -321,6 +321,7 @@ IMAGE_SCALE_MAP = {
 def image_scale_fixer(text):
 
     if text:
+        text = text.replace('/image"', '/@@images/image"')
         for old, new in IMAGE_SCALE_MAP.items():
             # replace plone.app.imaging old scale names with new ones
             text = text.replace(
@@ -328,6 +329,7 @@ def image_scale_fixer(text):
                 '@@images/image/{0}'.format(new)
             )
             # replace AT traversing scales
+
             text = text.replace(
                 'image_{0}'.format(old),
                 '@@images/image/{0}'.format(new)
@@ -357,7 +359,7 @@ def set_correctly_exclude_from_nav(pc):
         logger.warn('unset exclude from nav for {}'.format(brain.getPath()))
 
 
-def fix_at_image_scales(context):
+def fix_at_image_scales(context=None):
     catalog = api.portal.get_tool('portal_catalog')
     query = {}
     query['object_provides'] = 'plone.app.contenttypes.behaviors.richtext.IRichText'  # noqa

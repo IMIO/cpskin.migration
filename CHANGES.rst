@@ -4,6 +4,9 @@ Changelog
 0.3.7 (unreleased)
 ------------------
 
+- Add blueprint for transmo.
+  [bsuttor]
+
 - Check IDirectAccess during migration.
   [bsuttor]
 

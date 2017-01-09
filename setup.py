@@ -41,6 +41,7 @@ setup(name='cpskin.migration',
           'cpskin.core',
           # 'acptheme.cpskin3',
           'plone.api',
+          'transmogrify.dexterity',
           # -*- Extra requirements: -*-
       ],
       extras_require={

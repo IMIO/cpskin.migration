@@ -1,0 +1,30 @@
+<configure
+  xmlns="http://namespaces.zope.org/zope"
+  xmlns:transmogrifier="http://namespaces.plone.org/transmogrifier"
+  i18n_domain="cpskin">
+
+  <transmogrifier:registerConfig
+    name="cpskin.blueprints.dexterity"
+    title="cpskin migration configuration for dexterity"
+    description="default migration configuration, should used by every configuration"
+    configuration="dexterity.cfg"
+    />
+
+  <utility
+    component=".source_catalog.CatalogSourceSection"
+    name="cpskin.migration.catalogsource" />
+
+  <utility
+    component=".cpskin.Dexterity"
+    name="cpskin.migration.blueprints.cpskin.dexterity" />
+
+  <utility
+    component=".cpskin.WorkflowHistory"
+    name="cpskin.migration.blueprints.cpskin.workflow" />
+
+  <utility
+    component=".schemaupdater.DexterityUpdateSection"
+    name="cpskin.migration.blueprint.cpskin.schemaupdater" />
+
+
+</configure>

@@ -1,8 +1,12 @@
-<configure xmlns="http://namespaces.zope.org/zope"
+<configure
+  xmlns="http://namespaces.zope.org/zope"
+  xmlns:transmogrifier="http://namespaces.plone.org/transmogrifier"
   i18n_domain="cpskin">
 
   <!--include package="acptheme.cpskin3"/-->
-  <include package="cpskin.policy"/>
+  <include package="cpskin.policy" />
+  <!--include package="cpskin.core" /-->
+  <include package=".blueprints" />
 
   <include file="profiles.zcml" />
 
@@ -13,7 +17,8 @@
     handler=".events.migrateBeforeCpSkinInstall" />
 
 
-  <adapter name="cpskinmigrator" factory=".migrate.CpskinMigrator" />
+
+
+
 
 </configure>
-

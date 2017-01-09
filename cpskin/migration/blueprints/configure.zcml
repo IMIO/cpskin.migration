@@ -11,10 +11,6 @@
     />
 
   <utility
-    component=".source_catalog.CatalogSourceSection"
-    name="cpskin.migration.catalogsource" />
-
-  <utility
     component=".cpskin.Dexterity"
     name="cpskin.migration.blueprints.cpskin.dexterity" />
 

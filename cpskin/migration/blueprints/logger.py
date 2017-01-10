@@ -9,6 +9,9 @@ from collective.transmogrifier.interfaces import ISection
 from collective.transmogrifier.utils import Matcher
 
 VALIDATIONKEY = 'cpskin.transmogrifier.logger'
+logger = logging.getLogger(VALIDATIONKEY)
+logger.setLevel(logging.INFO)
+
 
 class LoggerSection(object):
     classProvides(ISectionBlueprint)
@@ -20,7 +23,7 @@ class LoggerSection(object):
         self.pathkey = options.get('path-key', '_path').strip()
         self.keys = Matcher(*keys.splitlines())
         self.previous = previous
-        self.logger = name
+        # self.logger = name
         self.storage = IAnnotations(transmogrifier).setdefault(VALIDATIONKEY, [])
 
     def __iter__(self):
@@ -41,7 +44,7 @@ class LoggerSection(object):
                     items.append("%s=%s" % (key, item[key]))
             if items:
                 msg = ", ".join(items)
-                logging.getLogger(self.logger).info(msg)
+                logger.info(msg)
             yield item
 
         working_time = int(round(time() - start_time))
@@ -49,7 +52,7 @@ class LoggerSection(object):
         # log items that maybe have some problems
         if self.storage:
             problematic = len(self.storage)
-            logging.getLogger(self.logger).warning('\nNext objects didn\'t go through full pipeline:\n%s' % \
+            logger.warning('\nNext objects didn\'t go through full pipeline:\n%s' % \
                 '\n'.join(['\t'+i for i in self.storage]))
         # delete validation data from annotations
         anno = IAnnotations(self.transmogrifier)
@@ -63,4 +66,4 @@ class LoggerSection(object):
         stats += "\t%4d items were generated in source sections\n" % (count + problematic)
         stats += "\t%4d went through full pipeline\n" % count
         stats += "\t%4d were discarded in some section" % problematic
-        logging.getLogger(self.logger).info(stats)
+        logger.info(stats)

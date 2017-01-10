@@ -47,7 +47,7 @@ from plone.app.portlets.exportimport.portlets import PropertyPortletAssignmentEx
 
 from Products.MailHost.interfaces import IMailHost
 
-
+import base64
 import json
 import logging
 import pickle
@@ -144,15 +144,22 @@ class Dexterity(object):
         portal_skins = api.portal.get_tool('portal_skins')
         custom_folder = portal_skins.custom
         for result in results.get('custom', []):
-            raw = result.get('raw')
             meta_type = result.get('meta_type')
             obj_id = result.get('obj_id')
+            if meta_type in ['Image', 'File']:
+                data = base64.b64decode(result.get('data'))
+                add_meta = 'manage_add{0}'.format(meta_type.replace(' ', ''))
+                getattr(custom_folder, add_meta)(obj_id, data)
+            else:
+                raw = result.get('raw', None)
+
             if obj_id not in custom_folder.keys():
                 logger.info('add {}'.format(obj_id))
                 add_meta = 'manage_add{0}'.format(meta_type.replace(' ', ''))
-                getattr(custom_folder, add_meta)(obj_id)
-                obj = custom_folder.get(obj_id)
-                obj.munge(raw.encode('utf8'))
+                if raw:
+                    getattr(custom_folder, add_meta)(obj_id)
+                    obj = custom_folder.get(obj_id)
+                    obj.munge(raw.encode('utf8'))
 
         # install packages not installed
         portal_quickinstaller = api.portal.get_tool('portal_quickinstaller')

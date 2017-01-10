@@ -1,4 +1,5 @@
 import logging
+import sys
 from time import time
 
 from zope.interface import classProvides, implements
@@ -11,6 +12,11 @@ from collective.transmogrifier.utils import Matcher
 VALIDATIONKEY = 'cpskin.transmogrifier.logger'
 logger = logging.getLogger(VALIDATIONKEY)
 logger.setLevel(logging.INFO)
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s", "%Y-%m-%d %H:%M:%S")
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 
 class LoggerSection(object):

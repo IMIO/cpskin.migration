@@ -22,5 +22,8 @@
     component=".schemaupdater.DexterityUpdateSection"
     name="cpskin.migration.blueprint.cpskin.schemaupdater" />
 
+  <utility
+    component=".logger.LoggerSection"
+    name="cpskin.migration.blueprint.logger" />
 
 </configure>

@@ -22,35 +22,27 @@ from xml.dom import minidom
 from z3c.relationfield.relation import RelationValue
 from zope.app.container.contained import notifyContainerModified
 from zope.component import getMultiAdapter
-from zope.component import getUtilitiesFor
 from zope.component import getUtility
 from zope.component import queryMultiAdapter
 from zope.component.interfaces import ComponentLookupError
 from zope.component.interfaces import IFactory
 from zope.container.interfaces import INameChooser
-from zope.interface import providedBy
 from zope.intid.interfaces import IIntIds
-from zope.event import notify
 from zope.interface import alsoProvides
 from zope.interface import classProvides
 from zope.interface import implementer
-from zope.lifecycleevent import ObjectModifiedEvent
-from zope.schema import getFieldsInOrder
 from plone.portlets.interfaces import ILocalPortletAssignable
 from plone.portlets.interfaces import IPortletManager
 from plone.portlets.interfaces import IPortletAssignmentMapping
-from plone.portlets.interfaces import IPortletAssignment
 from plone.portlets.interfaces import ILocalPortletAssignmentManager
 from plone.app.portlets.interfaces import IPortletTypeInterface
 from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler
-from plone.app.portlets.exportimport.portlets import PropertyPortletAssignmentExportImportHandler
 
 from Products.MailHost.interfaces import IMailHost
 
 import base64
 import json
 import logging
-import pickle
 import posixpath
 import urllib2
 logger = logging.getLogger('Cpskin blueprints')
@@ -256,20 +248,11 @@ class Dexterity(object):
         if remote_plone_site.get('title', False):
             logger.info('set title: {}'.format(remote_plone_site.get('title')))
             plonesite.title = remote_plone_site.get('title')
-        if remote_plone_site.get('portlets', False):
-            if ILocalPortletAssignable.providedBy(plonesite):
-                data = None
-                data = remote_plone_site['portlets']
-                doc = minidom.parseString(data.encode('utf8'))
-                root = doc.documentElement
-                for elem in root.childNodes:
-                    if elem.nodeName == 'assignment':
-                        logger.info('Assign portlets to plone site')
-                        self.importAssignment(plonesite, elem)
-                    elif elem.nodeName == 'blacklist':
-                        logger.info('Add blacklist portlets to plone site')
-                        self.importBlacklist(plonesite, elem)
-                fix_portlets_image_scales(plonesite)
+
+        # portlets are added at the end because of ConstraintNotSatisfied error
+        # indeed porlet content should be added when content is already added
+        self.src_portlets = remote_plone_site.get('portlets', False)
+        self.src_plonesite = plonesite
 
     def importAssignment(self, obj, node):
         """ Import an assignment from a node
@@ -558,6 +541,21 @@ class Dexterity(object):
                 for ordered_key in ordered_keys:
                     parent_base.moveObjectsToBottom(ordered_key)
 
+        if self.src_portlets:
+            if ILocalPortletAssignable.providedBy(self.src_plonesite):
+                data = None
+                data = self.src_portlets
+                doc = minidom.parseString(data.encode('utf8'))
+                root = doc.documentElement
+                for elem in root.childNodes:
+                    if elem.nodeName == 'assignment':
+                        logger.info('Assign portlets to plone site')
+                        self.importAssignment(self.src_plonesite, elem)
+                    elif elem.nodeName == 'blacklist':
+                        logger.info('Add blacklist portlets to plone site')
+                        self.importBlacklist(self.src_plonesite, elem)
+                fix_portlets_image_scales(self.src_plonesite)
+
         logger.info('Fix at image scales')
         fix_at_image_scales()
 
@@ -610,8 +608,7 @@ class WorkflowHistory(object):
                 for workflow in item_tmp[workflowhistorykey]:
                     for k, workflow2 in enumerate(item_tmp[workflowhistorykey][workflow]):
                         if 'time' in item_tmp[workflowhistorykey][workflow][k]:
-                            item_tmp[workflowhistorykey][workflow][k]['time'] = \
-                            DateTime(item_tmp[workflowhistorykey][workflow][k]['time'])
+                            item_tmp[workflowhistorykey][workflow][k]['time'] = DateTime(item_tmp[workflowhistorykey][workflow][k]['time'])
 
                 if 'cpskin_workflow' in item_tmp[workflowhistorykey].keys():
                     cpskin_workflow = item_tmp[workflowhistorykey]['cpskin_workflow'][-1]

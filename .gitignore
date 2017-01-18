@@ -9,3 +9,4 @@ local/
 parts/
 src/
 *.pyc
+cpskin/migration/blueprints/dexterity.cfg

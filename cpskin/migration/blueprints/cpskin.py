@@ -162,17 +162,7 @@ class Dexterity(object):
             if product not in product_ids and product not in blacklist:
                 logger.info('install {}'.format(product))
                 portal_quickinstaller.installProduct(product)
-        # groups
-        for group in results.get('groups', []):
-            if not api.group.get(group['id']):
-                logger.info('Add group {}'.format(group['id']))
-                api.group.create(
-                    groupname=group['id'],
-                    title=group['title'],
-                    description=group['description'],
-                    roles=group['roles'],
-                    groups=group['groups']
-                )
+
         # users
         for user in results.get('users', []):
             if not api.user.get(user['id']):
@@ -204,6 +194,20 @@ class Dexterity(object):
                     )
                     logger.info('New password for user {} => {}'.format(
                         user['id'], password))
+        # groups
+        for group in results.get('groups', []):
+            if not api.group.get(group['id']):
+                logger.info('Add group {}'.format(group['id']))
+                api.group.create(
+                    groupname=group['id'],
+                    title=group['title'],
+                    description=group['description'],
+                    roles=group['roles'],
+                    groups=group['groups']
+                )
+                for user in group.get('users', []):
+                    api.group.add_user(groupname=group['id'], username=user)
+
         # mailhost
         if results.get('mailhost', False):
             mailhost = results.get('mailhost')

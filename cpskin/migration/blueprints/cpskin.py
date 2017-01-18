@@ -334,12 +334,14 @@ class Dexterity(object):
             poskey = self.poskey(*keys)[0]
             if not (pathkey and typekey and poskey):
                 logger.warn('Not enough info for item: %s' % item)
-                # import ipdb; ipdb.set_trace()
                 yield item
                 continue
 
-            # remove plone site from path
-            path_without_plone = '/'+'/'.join(item.get('_path').split('/')[2:])
+            # remove plone site path from path
+            cut = 2
+            if self.remote_url.split('/')[-2] == self.remote_url.split('/')[-1]:
+                cut = 3
+            path_without_plone = '/'+'/'.join(item.get('_path').split('/')[cut:])
             item['_path'] = path_without_plone
 
             #--- field corrector ---

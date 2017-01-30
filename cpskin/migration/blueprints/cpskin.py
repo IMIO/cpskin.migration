@@ -31,12 +31,13 @@ from zope.intid.interfaces import IIntIds
 from zope.interface import alsoProvides
 from zope.interface import classProvides
 from zope.interface import implementer
+from plone.app.multilingual.interfaces import ITranslationManager
+from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler
+from plone.app.portlets.interfaces import IPortletTypeInterface
 from plone.portlets.interfaces import ILocalPortletAssignable
 from plone.portlets.interfaces import IPortletManager
 from plone.portlets.interfaces import IPortletAssignmentMapping
 from plone.portlets.interfaces import ILocalPortletAssignmentManager
-from plone.app.portlets.interfaces import IPortletTypeInterface
-from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler
 
 from Products.MailHost.interfaces import IMailHost
 
@@ -44,8 +45,16 @@ import base64
 import json
 import logging
 import posixpath
+import sys
 import urllib2
+
 logger = logging.getLogger('Cpskin blueprints')
+logger.setLevel(logging.INFO)
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s", "%Y-%m-%d %H:%M:%S")
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 LISTING_VIEW_MAPPING = {  # OLD (AT and old DX) : NEW
     'all_content': 'full_view',
@@ -330,6 +339,7 @@ class Dexterity(object):
     def __iter__(self):
         positions_mapping = {}
         default_pages = {}
+        translations_mapping = []
         atrefs = {}
         for item in self.previous:
             keys = item.keys()
@@ -497,6 +507,12 @@ class Dexterity(object):
                 for atref in item.get('_atrefs').keys():
                     atrefs[path][atref] = item.get('_atrefs').get(atref)
 
+            # translations
+            if item.get('translations', []):
+                translations = item.get('translations')
+                if item.get('language') == 'fr':
+                    translations_mapping.append(translations)
+
             yield item
 
         for path, atref_dict in atrefs.items():
@@ -570,6 +586,16 @@ class Dexterity(object):
             obj.setDefaultPage(default_page)
             logger.info('Set default page: {} for: {}'.format(default_page, path))
 
+        for translation_mapping in translations_mapping:
+            obj_path = translation_mapping['fr']
+            obj = api.content.get(obj_path)
+            manager = ITranslationManager(obj)
+            for lang in translation_mapping.keys():
+                if lang != 'fr':
+                    trans_obj = api.content.get(translation_mapping[lang])
+                    manager.register_translation(lang, trans_obj)
+                    logger.info('{} translated to {}'.format(
+                        obj_path, trans_obj.absolute_url()))
 
 @implementer(ISection)
 class WorkflowHistory(object):

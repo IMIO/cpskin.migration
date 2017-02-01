@@ -249,7 +249,8 @@ class Dexterity(object):
         if results.get('languages', False):
             languages = results.get('languages', [])
             logger.info('set languages: {}'.format(languages))
-            plonesite.supported_langs = languages
+            portal_languages = api.portal.get_tool('portal_languages')
+            portal_languages.supported_langs = languages
 
 
         # set cpskin interfaces and title for Plone Site object

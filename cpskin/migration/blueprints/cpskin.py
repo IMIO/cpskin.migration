@@ -245,6 +245,13 @@ class Dexterity(object):
                 api.portal.set_registry_record(lng_key, Decimal(geo['longitude']))
                 logger.info('Geo site settings for latitude and longitude updated.')
 
+        # languages
+        if results.get('languages', False):
+            languages = results.get('languages', [])
+            logger.info('set languages: {}'.format(languages))
+            plonesite.supported_langs = languages
+
+
         # set cpskin interfaces and title for Plone Site object
         url = '{0}/get_item'.format(self.remote_url)
         req = urllib2.Request(url)
@@ -266,6 +273,7 @@ class Dexterity(object):
         # indeed porlet content should be added when content is already added
         self.src_portlets = remote_plone_site.get('portlets', False)
         self.src_plonesite = plonesite
+
 
     def importAssignment(self, obj, node):
         """ Import an assignment from a node

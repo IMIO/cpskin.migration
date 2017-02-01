@@ -166,7 +166,12 @@ class Dexterity(object):
         portal_quickinstaller = api.portal.get_tool('portal_quickinstaller')
         product_ids = [
             product['id'] for product in portal_quickinstaller.listInstalledProducts()]
-        blacklist = ['collective.contentleadimage', 'plone.app.collection', 'cpskin.demo']
+        blacklist = [
+            'collective.contentleadimage',
+            'plone.app.collection',
+            'cpskin.demo',
+            'archetypes.multilingual'
+        ]
         for product in results.get('products', []):
             if product not in product_ids and product not in blacklist:
                 logger.info('install {}'.format(product))

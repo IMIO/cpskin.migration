@@ -10,6 +10,7 @@ from collective.transmogrifier.utils import defaultMatcher
 from collective.transmogrifier.utils import Expression
 from collective.transmogrifier.utils import Matcher
 from collective.transmogrifier.utils import traverse
+from cpskin.core.utils import set_plonecustom_last
 from copy import deepcopy
 from datetime import datetime
 from DateTime import DateTime
@@ -615,6 +616,8 @@ class Dexterity(object):
                     manager.register_translation(lang, trans_obj)
                     logger.info('{} translated to {}'.format(
                         obj_path, trans_obj.absolute_url()))
+
+        set_plonecustom_last()
 
 
 @implementer(ISection)

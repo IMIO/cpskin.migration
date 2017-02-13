@@ -32,7 +32,7 @@ from zope.interface import alsoProvides
 from zope.interface import classProvides
 from zope.interface import implementer
 from plone.app.multilingual.interfaces import ITranslationManager
-from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler
+from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler  # noqa
 from plone.app.portlets.interfaces import IPortletTypeInterface
 from plone.portlets.interfaces import ILocalPortletAssignable
 from plone.portlets.interfaces import IPortletManager
@@ -52,7 +52,8 @@ logger = logging.getLogger('Cpskin blueprints')
 logger.setLevel(logging.INFO)
 ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s", "%Y-%m-%d %H:%M:%S")
+formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s",
+                              "%Y-%m-%d %H:%M:%S")
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
@@ -122,7 +123,8 @@ class Dexterity(object):
             logger.info('{0} deleted'.format(content.id))
 
         # get portal_skins/custom folder
-        self.remote_url = self.get_option('remote-url', 'http://localhost:8080')
+        self.remote_url = self.get_option(
+            'remote-url', 'http://localhost:8080')
         remote_username = self.get_option('remote-username', 'admin')
         remote_password = self.get_option('remote-password', 'admin')
         auth_handler = urllib2.HTTPBasicAuthHandler()
@@ -163,9 +165,9 @@ class Dexterity(object):
                     obj.munge(raw.encode('utf8'))
 
         # install packages not installed
-        portal_quickinstaller = api.portal.get_tool('portal_quickinstaller')
+        pqi = api.portal.get_tool('portal_quickinstaller')
         product_ids = [
-            product['id'] for product in portal_quickinstaller.listInstalledProducts()]
+            product['id'] for product in pqi.listInstalledProducts()]
         blacklist = [
             'collective.contentleadimage',
             'plone.app.collection',
@@ -175,7 +177,7 @@ class Dexterity(object):
         for product in results.get('products', []):
             if product not in product_ids and product not in blacklist:
                 logger.info('install {}'.format(product))
-                portal_quickinstaller.installProduct(product)
+                pqi.installProduct(product)
 
         # users
         for user in results.get('users', []):
@@ -242,13 +244,15 @@ class Dexterity(object):
         # geo
         if results.get('geo', False):
             geo = results.get('geo', False)
-            lat_key = 'collective.geo.settings.interfaces.IGeoSettings.latitude'
-            lng_key = 'collective.geo.settings.interfaces.IGeoSettings.longitude'
+            lat_key = 'collective.geo.settings.interfaces.IGeoSettings.latitude'  # noqa
+            lng_key = 'collective.geo.settings.interfaces.IGeoSettings.longitude'  # noqa
             if geo.get('latitude', False) and geo.get('longitude', False):
                 from decimal import Decimal
-                api.portal.set_registry_record(lat_key, Decimal(geo['latitude']))
-                api.portal.set_registry_record(lng_key, Decimal(geo['longitude']))
-                logger.info('Geo site settings for latitude and longitude updated.')
+                api.portal.set_registry_record(lat_key,
+                                               Decimal(geo['latitude']))
+                api.portal.set_registry_record(lng_key,
+                                               Decimal(geo['longitude']))
+                logger.info('Geo site settings for latitude and longitude updated.')  # noqa
 
         # languages
         if results.get('languages', False):
@@ -256,7 +260,6 @@ class Dexterity(object):
             logger.info('set languages: {}'.format(languages))
             portal_languages = api.portal.get_tool('portal_languages')
             portal_languages.supported_langs = languages
-
 
         # set cpskin interfaces and title for Plone Site object
         url = '{0}/get_item'.format(self.remote_url)
@@ -279,7 +282,6 @@ class Dexterity(object):
         # indeed porlet content should be added when content is already added
         self.src_portlets = remote_plone_site.get('portlets', False)
         self.src_plonesite = plonesite
-
 
     def importAssignment(self, obj, node):
         """ Import an assignment from a node
@@ -327,7 +329,8 @@ class Dexterity(object):
 
         manager = getUtility(IPortletManager, name=manager)
 
-        assignable = queryMultiAdapter((obj, manager), ILocalPortletAssignmentManager)
+        assignable = queryMultiAdapter((obj, manager),
+                                       ILocalPortletAssignmentManager)
 
         if status.lower() == 'block':
             assignable.setBlacklistStatus(category, True)
@@ -367,12 +370,12 @@ class Dexterity(object):
 
             # remove plone site path from path
             cut = 2
-            if self.remote_url.split('/')[-2] == self.remote_url.split('/')[-1]:
+            if self.remote_url.split('/')[-2] == self.remote_url.split('/')[-1]:  # noqa
                 cut = 3
-            path_without_plone = '/'+'/'.join(item.get('_path').split('/')[cut:])
+            path_without_plone = '/'+'/'.join(item.get('_path').split('/')[cut:])  # noqa
             item['_path'] = path_without_plone
 
-            #--- field corrector ---
+            # --- field corrector ---
             if item.get('startDate', False):
                 item['start'] = item.get('startDate')
             if item.get('endDate', False):
@@ -383,12 +386,13 @@ class Dexterity(object):
             if item.get('effectiveDate', False):
                 item['effective'] = item.get('effectiveDate')
 
-            #--- constructor ---
+            # --- constructor ---
             type_, path = item[typekey], item[pathkey]
             fti = self.ttool.getTypeInfo(type_)
             if fti is None:
                 logger.warn('Not an existing type: %s' % type_)
-                yield item; continue
+                yield item
+                continue
 
             path = path.encode('ASCII')
             container, id = posixpath.split(path.strip('/'))
@@ -403,7 +407,8 @@ class Dexterity(object):
                 continue
 
             if getattr(aq_base(context), id, None) is not None:  # item exists
-                yield item; continue
+                yield item
+                continue
             obj = fti._constructInstance(context, id)
 
             # For CMF <= 2.1 (aka Plone 3)
@@ -413,8 +418,7 @@ class Dexterity(object):
             if obj.getId() != id:
                 item[pathkey] = posixpath.join(container, obj.getId())
 
-
-            #--- cpskin stuff ---
+            # --- cpskin stuff ---
 
             # Exclude from nav
             if item.get('excludeFromNav', False):
@@ -448,7 +452,7 @@ class Dexterity(object):
                 crits = item.get('faceted_criteria')
                 criteria = Criteria(obj)
                 criterions = []
-                new_criterias = []
+                # new_criterias = []
                 for crit in crits:
                     criterion = Criterion(**crit)
                     criterions.append(criterion)
@@ -457,7 +461,7 @@ class Dexterity(object):
             # coord
             if item.get('coordinates', False):
                 coord = item.get('coordinates')
-                new_coord = Coordinates(obj)
+                Coordinates(obj)
                 obj.coordinates = coord
 
             # Put creation and modification time on its place
@@ -495,7 +499,7 @@ class Dexterity(object):
                         default_pages[item[pathkey]] = str(defaultpage)
 
             # portlets
-            if item.get('portlets, None') and ILocalPortletAssignable.providedBy(obj):
+            if item.get('portlets, None') and ILocalPortletAssignable.providedBy(obj):  # noqa
                 data = None
                 data = item['portlets']
                 doc = minidom.parseString(data)
@@ -506,8 +510,8 @@ class Dexterity(object):
                     elif elem.nodeName == 'blacklist':
                         self.importBlacklist(obj, elem)
                 fix_portlets_image_scales(obj)
-            # Store positions in a mapping containing an id to position mapping for
-            # each parent path {parent_path: {item_id: item_pos}}.
+            # Store positions in a mapping containing an id to position mapping
+            # for each parent path {parent_path: {item_id: item_pos}}.
             item_id = item[pathkey].split('/')[-1]
             parent_path = '/'.join(item[pathkey].split('/')[:-1])
             if parent_path not in positions_mapping:
@@ -598,7 +602,8 @@ class Dexterity(object):
         for path, default_page in default_pages.items():
             obj = api.content.get(path)
             obj.setDefaultPage(default_page)
-            logger.info('Set default page: {} for: {}'.format(default_page, path))
+            logger.info('Set default page: {} for: {}'.format(
+                default_page, path))
 
         for translation_mapping in translations_mapping:
             obj_path = translation_mapping['fr']
@@ -610,6 +615,7 @@ class Dexterity(object):
                     manager.register_translation(lang, trans_obj)
                     logger.info('{} translated to {}'.format(
                         obj_path, trans_obj.absolute_url()))
+
 
 @implementer(ISection)
 class WorkflowHistory(object):
@@ -627,7 +633,8 @@ class WorkflowHistory(object):
         if 'workflowhistory-key' in options:
             workflowhistorykeys = options['workflowhistory-key'].splitlines()
         else:
-            workflowhistorykeys = defaultKeys(options['blueprint'], name, 'workflow_history')
+            workflowhistorykeys = defaultKeys(options['blueprint'], name,
+                                              'workflow_history')
         self.workflowhistorykey = Matcher(*workflowhistorykeys)
 
     def __iter__(self):
@@ -637,27 +644,31 @@ class WorkflowHistory(object):
 
             if not pathkey or not workflowhistorykey or \
                workflowhistorykey not in item:  # not enough info
-                yield item; continue
+                yield item
+                continue
 
-            obj = self.context.unrestrictedTraverse(str(item[pathkey]).lstrip('/'), None)
+            obj = self.context.unrestrictedTraverse(
+                str(item[pathkey]).lstrip('/'), None)
             if obj is None or not getattr(obj, 'workflow_history', False):
-                yield item; continue
+                yield item
+                continue
 
             if IDexterityContent.providedBy(obj):
                 item_tmp = deepcopy(item)
                 workflow_for_obj = self.wftool.getWorkflowsFor(obj)
                 if not workflow_for_obj:
-                    yield item; continue
-                current_obj_wf = workflow_for_obj[0].id
+                    yield item
+                    continue
+                # current_obj_wf = workflow_for_obj[0].id
 
                 # get back datetime stamp and set the workflow history
                 for workflow in item_tmp[workflowhistorykey]:
-                    for k, workflow2 in enumerate(item_tmp[workflowhistorykey][workflow]):
+                    for k, workflow2 in enumerate(item_tmp[workflowhistorykey][workflow]):  # noqa
                         if 'time' in item_tmp[workflowhistorykey][workflow][k]:
-                            item_tmp[workflowhistorykey][workflow][k]['time'] = DateTime(item_tmp[workflowhistorykey][workflow][k]['time'])
+                            item_tmp[workflowhistorykey][workflow][k]['time'] = DateTime(item_tmp[workflowhistorykey][workflow][k]['time'])  # noqa
 
                 if 'cpskin_workflow' in item_tmp[workflowhistorykey].keys():
-                    cpskin_workflow = item_tmp[workflowhistorykey]['cpskin_workflow'][-1]
+                    cpskin_workflow = item_tmp[workflowhistorykey]['cpskin_workflow'][-1]  # noqa
                     review_state = cpskin_workflow.get('review_state')
                     api.content.transition(obj, to_state=review_state)
                 obj.workflow_history.data = item_tmp[workflowhistorykey]

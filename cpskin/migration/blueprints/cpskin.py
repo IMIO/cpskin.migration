@@ -10,7 +10,6 @@ from collective.transmogrifier.utils import defaultMatcher
 from collective.transmogrifier.utils import Expression
 from collective.transmogrifier.utils import Matcher
 from collective.transmogrifier.utils import traverse
-from cpskin.core.utils import set_plonecustom_last
 from copy import deepcopy
 from datetime import datetime
 from DateTime import DateTime
@@ -73,6 +72,14 @@ LISTING_VIEW_MAPPING = {  # OLD (AT and old DX) : NEW
     'thumbnail_view': 'album_view',
     'view': 'listing_view',
 }
+
+
+def set_plonecustom_last():
+    portal_css = api.portal.get_tool('portal_css')
+    resources = list(portal_css.resources)
+    custom_id = 'ploneCustom.css'
+    if custom_id in [res.getId() for res in resources]:
+        portal_css.moveResource(custom_id, len(resources))
 
 
 def getIfaceById(name):

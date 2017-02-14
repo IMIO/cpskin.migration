@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.3.7 (unreleased)
+0.3.7 (2017-02-14)
 ------------------
 
 - Add blueprint for transmo.

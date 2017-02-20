@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from ..migrate import fix_at_image_scales
 from ..migrate import fix_portlets_image_scales
+from AccessControl.interfaces import IRoleManager
 from Acquisition import aq_base
 from collective.geo.behaviour.behaviour import Coordinates
 from collective.transmogrifier.interfaces import ISection
@@ -286,6 +287,24 @@ class Dexterity(object):
             logger.info('set title: {}'.format(remote_plone_site.get('title')))
             plonesite.title = remote_plone_site.get('title')
 
+        # propeties: layout: language-switcher
+        properties = remote_plone_site.get('_properties', None)
+        if properties:
+            for layout in [prop for prop in properties if prop[0] == 'layout']:
+                plonesite.setLayout(str(layout[1]))
+
+
+        # _ac_local_roles
+        if remote_plone_site.get('_ac_local_roles', False):
+            for principal, roles in remote_plone_site.get('_ac_local_roles').items():
+                if roles:
+                    logger.info('set roles: {} {} to plone site'.format(
+                        principal,
+                        roles
+                    ))
+                    plonesite.manage_addLocalRoles(principal, roles)
+                    plonesite.reindexObjectSecurity()
+
         # portlets are added at the end because of ConstraintNotSatisfied error
         # indeed porlet content should be added when content is already added
         self.src_portlets = remote_plone_site.get('portlets', False)
@@ -538,6 +557,14 @@ class Dexterity(object):
                 translations = item.get('translations')
                 if item.get('language') == 'fr':
                     translations_mapping.append(translations)
+
+            # _ac_local_roles
+            if item.get('_ac_local_roles', None):
+                if IRoleManager.providedBy(obj):
+                    for principal, roles in item['_ac_local_roles'].items():
+                        if roles:
+                            obj.manage_addLocalRoles(principal, roles)
+                            obj.reindexObjectSecurity()
 
             yield item
 

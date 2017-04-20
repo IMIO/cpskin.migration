@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from ..migrate import fix_at_image_scales
 from ..migrate import fix_portlets_image_scales
+from AccessControl import getSecurityManager
 from AccessControl.interfaces import IRoleManager
 from Acquisition import aq_base
 from collective.geo.behaviour.behaviour import Coordinates
@@ -12,10 +13,13 @@ from collective.transmogrifier.utils import Expression
 from collective.transmogrifier.utils import Matcher
 from collective.transmogrifier.utils import traverse
 from copy import deepcopy
+from cpskin.migration.blueprints.utils import is_first_transmo
+from cpskin.migration.blueprints.utils import is_last_transmo
 from datetime import datetime
 from DateTime import DateTime
 from eea.facetednavigation.criteria.handler import Criteria
 from eea.facetednavigation.widgets.storage import Criterion
+from OFS.subscribers import compatibilityCall
 from plone import api
 from plone.dexterity.interfaces import IDexterityContent
 from Products.CMFDynamicViewFTI.interface import ISelectableBrowserDefault
@@ -28,10 +32,13 @@ from zope.component import queryMultiAdapter
 from zope.component.interfaces import ComponentLookupError
 from zope.component.interfaces import IFactory
 from zope.container.interfaces import INameChooser
+from zope.event import notify
 from zope.intid.interfaces import IIntIds
 from zope.interface import alsoProvides
 from zope.interface import classProvides
 from zope.interface import implementer
+from zope.lifecycleevent import ObjectAddedEvent
+from zope.lifecycleevent import ObjectCreatedEvent
 from plone.app.multilingual.interfaces import ITranslationManager
 from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler  # noqa
 from plone.app.portlets.interfaces import IPortletTypeInterface
@@ -39,7 +46,6 @@ from plone.portlets.interfaces import ILocalPortletAssignable
 from plone.portlets.interfaces import IPortletManager
 from plone.portlets.interfaces import IPortletAssignmentMapping
 from plone.portlets.interfaces import ILocalPortletAssignmentManager
-
 from Products.MailHost.interfaces import IMailHost
 
 import base64
@@ -47,7 +53,13 @@ import json
 import logging
 import posixpath
 import sys
+import time
+import transaction
 import urllib2
+from profilehooks import timecall
+
+
+_marker = []
 
 logger = logging.getLogger('Cpskin blueprints')
 logger.setLevel(logging.INFO)
@@ -102,6 +114,7 @@ class Dexterity(object):
     def __init__(self, transmogrifier, name, options, previous):
         self.previous = previous
         self.options = options
+        # import ipdb; ipdb.set_trace()
         self.context = transmogrifier.context if transmogrifier.context else api.portal.get()  # noqa
         self.name = name
         self.ttool = api.portal.get_tool('portal_types')
@@ -124,191 +137,196 @@ class Dexterity(object):
         # is an datafield entry for binary data, which' prefix can be
         # configured.
         self.datafield_prefix = options.get('datafield-prefix', '_datafield_')
-
-        # make site empty
-        plonesite = api.portal.get()
-        for content in plonesite.contentValues():
-            api.content.delete(content)
-            logger.info('{0} deleted'.format(content.id))
-
-        # get portal_skins/custom folder
         self.remote_url = self.get_option(
             'remote-url', 'http://localhost:8080')
-        remote_username = self.get_option('remote-username', 'admin')
-        remote_password = self.get_option('remote-password', 'admin')
-        auth_handler = urllib2.HTTPBasicAuthHandler()
-        auth_handler.add_password(realm='Zope',
-                                  uri=self.remote_url,
-                                  user=remote_username,
-                                  passwd=remote_password)
-        opener = urllib2.build_opener(auth_handler)
-        urllib2.install_opener(opener)
-        url = '{0}/transmo-export'.format(self.remote_url)
-        req = urllib2.Request(url)
-        try:
-            f = urllib2.urlopen(req)
-            resp = f.read()
-        except urllib2.URLError:
-            raise
-        results = json.loads(resp)
+        plonesite = api.portal.get()
+        if is_first_transmo(plonesite):
+            portal_catalog = api.portal.get_tool('portal_catalog')
+            object_count = len(portal_catalog())
+            # make site empty if it is a cpskin empty site
+            if object_count == 32:
+                for content in plonesite.contentValues():
+                    api.content.delete(content)
+                    logger.info('{0} deleted'.format(content.id))
+                    transaction.commit()
+            # get portal_skins/custom folder
 
-        # copy portal_skins/custom folder
-        portal_skins = api.portal.get_tool('portal_skins')
-        custom_folder = portal_skins.custom
-        for result in results.get('custom', []):
-            meta_type = result.get('meta_type')
-            obj_id = result.get('obj_id')
-            if meta_type in ['Image', 'File']:
-                data = base64.b64decode(result.get('data'))
-                add_meta = 'manage_add{0}'.format(meta_type.replace(' ', ''))
-                getattr(custom_folder, add_meta)(obj_id, data)
-            else:
-                raw = result.get('raw', None)
-
-            if obj_id not in custom_folder.keys():
-                logger.info('add {}'.format(obj_id))
-                add_meta = 'manage_add{0}'.format(meta_type.replace(' ', ''))
-                if raw:
-                    getattr(custom_folder, add_meta)(obj_id)
-                    obj = custom_folder.get(obj_id)
-                    obj.munge(raw.encode('utf8'))
-
-        # install packages not installed
-        pqi = api.portal.get_tool('portal_quickinstaller')
-        product_ids = [
-            product['id'] for product in pqi.listInstalledProducts()]
-        blacklist = [
-            'collective.contentleadimage',
-            'plone.app.collection',
-            'cpskin.demo',
-            'archetypes.multilingual'
-        ]
-        for product in results.get('products', []):
-            if product not in product_ids and product not in blacklist:
-                logger.info('install {}'.format(product))
-                pqi.installProduct(product)
-
-        # users
-        for user in results.get('users', []):
-            if not api.user.get(user['id']):
-
-                try:
-                    api.user.create(
-                        username=user['id'],
-                        password=user['password'],
-                        email=user['email'],
-                        roles=user['roles'],
-                        properties={
-                            'domains': user['domains'],
-                            'fullname': user['fullname']
-                        }
-                    )
-                    logger.info('Added user {}'.format(user['id']))
-                except ValueError:
-                    from imio.helpers.security import generate_password
-                    password = generate_password()
-                    api.user.create(
-                        username=user['id'],
-                        password=password,
-                        email=user['email'],
-                        roles=user['roles'],
-                        properties={
-                            'domains': user['domains'],
-                            'fullname': user['fullname']
-                        }
-                    )
-                    logger.info('New password for user {} => {}'.format(
-                        user['id'], password))
-        # groups
-        for group in results.get('groups', []):
-            if not api.group.get(group['id']):
-                logger.info('Add group {}'.format(group['id']))
-                api.group.create(
-                    groupname=group['id'],
-                    title=group['title'],
-                    description=group['description'],
-                    roles=group['roles'],
-                    groups=group['groups']
-                )
-                for user in group.get('users', []):
-                    api.group.add_user(groupname=group['id'], username=user)
-
-        # mailhost
-        if results.get('mailhost', False):
-            mailhost = results.get('mailhost')
+            remote_username = self.get_option('remote-username', 'admin')
+            remote_password = self.get_option('remote-password', 'admin')
+            auth_handler = urllib2.HTTPBasicAuthHandler()
+            auth_handler.add_password(realm='Zope',
+                                      uri=self.remote_url,
+                                      user=remote_username,
+                                      passwd=remote_password)
+            opener = urllib2.build_opener(auth_handler)
+            urllib2.install_opener(opener)
+            url = '{0}/transmo-export'.format(self.remote_url)
+            req = urllib2.Request(url)
             try:
-                mail_host = getUtility(IMailHost)
-            except ComponentLookupError:
-                mail_host = getattr(api.portal.get(), 'MailHost')
-            mail_host.smtp_host = mailhost['smtp_host']
-            mail_host.smtp_port = mailhost['smtp_port']
-            if mailhost.get('smtp_userid', None):
-                mail_host.smtp_userid = mailhost['smtp_userid']
-            mail_host.smtp_uid = mailhost['smtp_uid']
-            mail_host.smtp_pwd = mailhost['smtp_pwd']
-            plonesite.email_from_address = mailhost['email_from_address']
-            plonesite.email_from_name = mailhost['email_from_name']
-            logger.info('Mailhost updated')
+                f = urllib2.urlopen(req)
+                resp = f.read()
+            except urllib2.URLError:
+                raise
+            results = json.loads(resp)
 
-        # geo
-        if results.get('geo', False):
-            geo = results.get('geo', False)
-            lat_key = 'collective.geo.settings.interfaces.IGeoSettings.latitude'  # noqa
-            lng_key = 'collective.geo.settings.interfaces.IGeoSettings.longitude'  # noqa
-            if geo.get('latitude', False) and geo.get('longitude', False):
-                from decimal import Decimal
-                api.portal.set_registry_record(lat_key,
-                                               Decimal(geo['latitude']))
-                api.portal.set_registry_record(lng_key,
-                                               Decimal(geo['longitude']))
-                logger.info('Geo site settings for latitude and longitude updated.')  # noqa
+            # copy portal_skins/custom folder
+            portal_skins = api.portal.get_tool('portal_skins')
+            custom_folder = portal_skins.custom
+            for result in results.get('custom', []):
+                meta_type = result.get('meta_type')
+                obj_id = result.get('obj_id')
+                if obj_id not in custom_folder.keys():
+                    if meta_type in ['Image', 'File']:
+                        data = base64.b64decode(result.get('data'))
+                        add_meta = 'manage_add{0}'.format(meta_type.replace(' ', ''))
+                        getattr(custom_folder, add_meta)(obj_id, data)
+                    else:
+                        raw = result.get('raw', None)
 
-        # languages
-        if results.get('languages', False):
-            languages = results.get('languages', [])
-            logger.info('set languages: {}'.format(languages))
-            portal_languages = api.portal.get_tool('portal_languages')
-            portal_languages.supported_langs = languages
+                if obj_id not in custom_folder.keys():
+                    logger.info('add {}'.format(obj_id))
+                    add_meta = 'manage_add{0}'.format(meta_type.replace(' ', ''))
+                    if raw:
+                        getattr(custom_folder, add_meta)(obj_id)
+                        obj = custom_folder.get(obj_id)
+                        obj.munge(raw.encode('utf8'))
 
-        # set cpskin interfaces and title for Plone Site object
-        url = '{0}/get_item'.format(self.remote_url)
-        req = urllib2.Request(url)
-        try:
-            f = urllib2.urlopen(req)
-            resp = f.read()
-        except urllib2.URLError:
-            raise
-        remote_plone_site = json.loads(resp)
-        if remote_plone_site.get('cpskin_interfaces', False):
-            for interface_name in remote_plone_site.get('cpskin_interfaces'):
-                logger.info('set interface: {}'.format(interface_name))
-                alsoProvides(plonesite, getIfaceById(interface_name))
-        if remote_plone_site.get('title', False):
-            logger.info('set title: {}'.format(remote_plone_site.get('title')))
-            plonesite.title = remote_plone_site.get('title')
+            # install packages not installed
+            pqi = api.portal.get_tool('portal_quickinstaller')
+            product_ids = [
+                product['id'] for product in pqi.listInstalledProducts()]
+            blacklist = [
+                'collective.contentleadimage',
+                'plone.app.collection',
+                'cpskin.demo',
+                'archetypes.multilingual'
+            ]
+            for product in results.get('products', []):
+                if product not in product_ids and product not in blacklist:
+                    logger.info('install {}'.format(product))
+                    pqi.installProduct(product)
 
-        # propeties: layout: language-switcher
-        properties = remote_plone_site.get('_properties', None)
-        if properties:
-            for layout in [prop for prop in properties if prop[0] == 'layout']:
-                plonesite.setLayout(str(layout[1]))
+            # users
+            for user in results.get('users', []):
+                if not api.user.get(user['id']):
 
+                    try:
+                        api.user.create(
+                            username=user['id'],
+                            password=user['password'],
+                            email=user['email'],
+                            roles=user['roles'],
+                            properties={
+                                'domains': user['domains'],
+                                'fullname': user['fullname']
+                            }
+                        )
+                        logger.info('Added user {}'.format(user['id']))
+                    except ValueError:
+                        from imio.helpers.security import generate_password
+                        password = generate_password()
+                        api.user.create(
+                            username=user['id'],
+                            password=password,
+                            email=user['email'],
+                            roles=user['roles'],
+                            properties={
+                                'domains': user['domains'],
+                                'fullname': user['fullname']
+                            }
+                        )
+                        logger.info('New password for user {} => {}'.format(
+                            user['id'], password))
+            # groups
+            for group in results.get('groups', []):
+                if not api.group.get(group['id']):
+                    logger.info('Add group {}'.format(group['id']))
+                    api.group.create(
+                        groupname=group['id'],
+                        title=group['title'],
+                        description=group['description'],
+                        roles=group['roles'],
+                        groups=group['groups']
+                    )
+                    for user in group.get('users', []):
+                        api.group.add_user(groupname=group['id'], username=user)
 
-        # _ac_local_roles
-        if remote_plone_site.get('_ac_local_roles', False):
-            for principal, roles in remote_plone_site.get('_ac_local_roles').items():
-                if roles:
-                    logger.info('set roles: {} {} to plone site'.format(
-                        principal,
-                        roles
-                    ))
-                    plonesite.manage_addLocalRoles(principal, roles)
-                    plonesite.reindexObjectSecurity()
+            # mailhost
+            if results.get('mailhost', False):
+                mailhost = results.get('mailhost')
+                try:
+                    mail_host = getUtility(IMailHost)
+                except ComponentLookupError:
+                    mail_host = getattr(api.portal.get(), 'MailHost')
+                mail_host.smtp_host = mailhost['smtp_host']
+                mail_host.smtp_port = mailhost['smtp_port']
+                if mailhost.get('smtp_userid', None):
+                    mail_host.smtp_userid = mailhost['smtp_userid']
+                mail_host.smtp_uid = mailhost['smtp_uid']
+                mail_host.smtp_pwd = mailhost['smtp_pwd']
+                plonesite.email_from_address = mailhost['email_from_address']
+                plonesite.email_from_name = mailhost['email_from_name']
+                logger.info('Mailhost updated')
 
-        # portlets are added at the end because of ConstraintNotSatisfied error
-        # indeed porlet content should be added when content is already added
-        self.src_portlets = remote_plone_site.get('portlets', False)
+            # geo
+            if results.get('geo', False):
+                geo = results.get('geo', False)
+                lat_key = 'collective.geo.settings.interfaces.IGeoSettings.latitude'  # noqa
+                lng_key = 'collective.geo.settings.interfaces.IGeoSettings.longitude'  # noqa
+                if geo.get('latitude', False) and geo.get('longitude', False):
+                    from decimal import Decimal
+                    api.portal.set_registry_record(lat_key,
+                                                   Decimal(geo['latitude']))
+                    api.portal.set_registry_record(lng_key,
+                                                   Decimal(geo['longitude']))
+                    logger.info('Geo site settings for latitude and longitude updated.')  # noqa
+
+            # languages
+            if results.get('languages', False):
+                languages = results.get('languages', [])
+                logger.info('set languages: {}'.format(languages))
+                portal_languages = api.portal.get_tool('portal_languages')
+                portal_languages.supported_langs = languages
+
+            # set cpskin interfaces and title for Plone Site object
+            url = '{0}/get_item'.format(self.remote_url)
+            req = urllib2.Request(url)
+            try:
+                f = urllib2.urlopen(req)
+                resp = f.read()
+            except urllib2.URLError:
+                raise
+            remote_plone_site = json.loads(resp)
+            if remote_plone_site.get('cpskin_interfaces', False):
+                for interface_name in remote_plone_site.get('cpskin_interfaces'):
+                    logger.info('set interface: {}'.format(interface_name))
+                    alsoProvides(plonesite, getIfaceById(interface_name))
+            if remote_plone_site.get('title', False):
+                logger.info('set title: {}'.format(remote_plone_site.get('title')))
+                plonesite.title = remote_plone_site.get('title')
+
+            # propeties: layout: language-switcher
+            properties = remote_plone_site.get('_properties', None)
+            if properties:
+                for layout in [prop for prop in properties if prop[0] == 'layout']:
+                    plonesite.setLayout(str(layout[1]))
+
+            # _ac_local_roles
+            if remote_plone_site.get('_ac_local_roles', False):
+                for principal, roles in remote_plone_site.get('_ac_local_roles').items():
+                    if roles:
+                        logger.info('set roles: {} {} to plone site'.format(
+                            principal,
+                            roles
+                        ))
+                        plonesite.manage_addLocalRoles(principal, roles)
+                        plonesite.reindexObjectSecurity()
+
         self.src_plonesite = plonesite
+        if is_last_transmo(plonesite):
+            # portlets are added at the end because of ConstraintNotSatisfied error
+            # indeed porlet content should be added when content is already added
+            self.src_portlets = remote_plone_site.get('portlets', False)
 
     def importAssignment(self, obj, node):
         """ Import an assignment from a node
@@ -338,15 +356,25 @@ class Dexterity(object):
                 name = chooser.chooseName(None, assignment)
 
             mapping[name] = assignment
+        from plone.portlets.interfaces import IPortletAssignmentSettings
 
         # aq-wrap it so that complex fields will work
         assignment = assignment.__of__(obj)
+
+        # set visibility setting
+        visible = node.getAttribute('visible')
+        if visible:
+            settings = IPortletAssignmentSettings(assignment)
+            settings['visible'] = self._convertToBoolean(visible)
 
         # 3. Use an adapter to update the portlet settings
         portlet_interface = getUtility(IPortletTypeInterface, name=type_)
         assignment_handler = IPortletAssignmentExportImportHandler(assignment)
         assignment_handler.import_assignment(portlet_interface, node)
 
+    def _convertToBoolean(self, val):
+        return val.lower() in ('true', 'yes', '1')
+#
     def importBlacklist(self, obj, node):
         """ Import a blacklist from a node
         """
@@ -391,14 +419,19 @@ class Dexterity(object):
             pathkey = self.pathkey(*keys)[0]
             poskey = self.poskey(*keys)[0]
             if not (pathkey and typekey and poskey):
+                # import ipdb; ipdb.set_trace()
                 logger.warn('Not enough info for item: %s' % item)
                 yield item
                 continue
 
             # remove plone site path from path
             cut = 2
-            if self.remote_url.split('/')[-2] == self.remote_url.split('/')[-1]:  # noqa
-                cut = 3
+            try:
+                if self.remote_url.split('/')[-2] == self.remote_url.split('/')[-1]:  # noqa
+                    cut = 3
+            except:
+                import ipdb; ipdb.set_trace()
+
             path_without_plone = '/'+'/'.join(item.get('_path').split('/')[cut:])  # noqa
             item['_path'] = path_without_plone
 
@@ -420,7 +453,6 @@ class Dexterity(object):
                 logger.warn('Not an existing type: %s' % type_)
                 yield item
                 continue
-
             path = path.encode('ASCII')
             container, id = posixpath.split(path.strip('/'))
             context = traverse(self.context, container, None)
@@ -436,11 +468,67 @@ class Dexterity(object):
             if getattr(aq_base(context), id, None) is not None:  # item exists
                 yield item
                 continue
-            obj = fti._constructInstance(context, id)
 
-            # For CMF <= 2.1 (aka Plone 3)
-            if hasattr(fti, '_finishConstruction'):
-                obj = fti._finishConstruction(obj)
+            # -----------------------------------------------------------------
+            portal_types = api.portal.get_tool('portal_types')
+            # obj = fti._constructInstance(context, id)
+            try:
+                factory = getUtility(IFactory, fti.factory)
+                obj = factory(id)
+                if hasattr(obj, '_setPortalTypeName'):
+                    obj._setPortalTypeName(fti.getId())
+                notify(ObjectCreatedEvent(obj))
+
+                # seems slow :
+                # rval = container._setObject(id, obj)
+                suppress_events = False
+                set_owner = 1
+                ob = obj  # better name, keep original function signature
+                t = getattr(ob, 'meta_type', None)
+
+                # If an object by the given id already exists, remove it.
+                # import ipdb; ipdb.set_trace()
+                for object_info in context._objects:
+                    if object_info['id'] == id:
+                        context._delObject(id)
+                        break
+
+                if not suppress_events:
+                    # notify(ObjectWillBeAddedEvent(ob, context, id))
+                    pass
+
+                context._objects = context._objects + ({'id': id, 'meta_type': t},)
+                context._setOb(id, ob)
+                ob = context._getOb(id)
+
+                if set_owner:
+                    # TODO: eventify manage_fixupOwnershipAfterAdd
+                    # This will be called for a copy/clone, or a normal _setObject.
+                    ob.manage_fixupOwnershipAfterAdd()
+
+                    # Try to give user the local role "Owner", but only if
+                    # no local roles have been set on the object yet.
+                    if getattr(ob, '__ac_local_roles__', _marker) is None:
+                        user = getSecurityManager().getUser()
+                        if user is not None:
+                            userid = user.getId()
+                            if userid is not None:
+                                ob.manage_setLocalRoles(userid, ['Owner'])
+
+                if not suppress_events:
+                    notify(ObjectAddedEvent(ob, context, id))
+                    # notifyContainerModified(context)
+
+                compatibilityCall('manage_afterAdd', ob, ob, context)
+                rval = id
+
+                newid = isinstance(rval, basestring) and rval or id
+                obj = context._getOb(newid)
+
+            # -----------------------------------------------------------------
+            except:
+                # if archeypes (as ploneformgen)
+                obj = fti._constructInstance(context, id)
 
             if obj.getId() != id:
                 item[pathkey] = posixpath.join(container, obj.getId())
@@ -616,23 +704,26 @@ class Dexterity(object):
                 for ordered_key in ordered_keys:
                     parent_base.moveObjectsToBottom(ordered_key)
 
-        if self.src_portlets:
-            if ILocalPortletAssignable.providedBy(self.src_plonesite):
-                data = None
-                data = self.src_portlets
-                doc = minidom.parseString(data.encode('utf8'))
-                root = doc.documentElement
-                for elem in root.childNodes:
-                    if elem.nodeName == 'assignment':
-                        logger.info('Assign portlets to plone site')
-                        self.importAssignment(self.src_plonesite, elem)
-                    elif elem.nodeName == 'blacklist':
-                        logger.info('Add blacklist portlets to plone site')
-                        self.importBlacklist(self.src_plonesite, elem)
-                fix_portlets_image_scales(self.src_plonesite)
+        if is_last_transmo(self.src_plonesite):
+            if self.src_portlets:
+                if ILocalPortletAssignable.providedBy(self.src_plonesite):
+                    data = None
+                    data = self.src_portlets
+                    doc = minidom.parseString(data.encode('utf8'))
+                    root = doc.documentElement
+                    for elem in root.childNodes:
+                        if elem.nodeName == 'assignment':
+                            logger.info('Assign portlets to plone site')
+                            self.importAssignment(self.src_plonesite, elem)
+                        elif elem.nodeName == 'blacklist':
+                            logger.info('Add blacklist portlets to plone site')
+                            self.importBlacklist(self.src_plonesite, elem)
+                    fix_portlets_image_scales(self.src_plonesite)
 
-        logger.info('Fix at image scales')
-        fix_at_image_scales()
+            set_plonecustom_last()
+
+            logger.info('Fix at image scales')
+            fix_at_image_scales()
 
         for path, default_page in default_pages.items():
             obj = api.content.get(path)
@@ -651,7 +742,11 @@ class Dexterity(object):
                     logger.info('{} translated to {}'.format(
                         obj_path, trans_obj.absolute_url()))
 
-        set_plonecustom_last()
+
+        # reindex all
+        # logger.info('reindex all')
+        # portal_catalog = api.portal.get_tool('portal_catalog')
+        # portal_catalog.manage_catalogRebuild()
 
 
 @implementer(ISection)
@@ -702,7 +797,8 @@ class WorkflowHistory(object):
                 for workflow in item_tmp[workflowhistorykey]:
                     for k, workflow2 in enumerate(item_tmp[workflowhistorykey][workflow]):  # noqa
                         if 'time' in item_tmp[workflowhistorykey][workflow][k]:
-                            item_tmp[workflowhistorykey][workflow][k]['time'] = DateTime(item_tmp[workflowhistorykey][workflow][k]['time'])  # noqa
+                            t = DateTime(item_tmp[workflowhistorykey][workflow][k]['time'])  # noqa
+                            item_tmp[workflowhistorykey][workflow][k]['time'] = t  # noqa
 
                 if 'cpskin_workflow' in item_tmp[workflowhistorykey].keys():
                     cpskin_workflow = item_tmp[workflowhistorykey]['cpskin_workflow'][-1]  # noqa
@@ -712,6 +808,7 @@ class WorkflowHistory(object):
 
                 # update security
                 workflows = self.wftool.getWorkflowsFor(obj)
+                # import ipdb; ipdb.set_trace()
                 for workfl in workflows:
                     workfl.updateRoleMappingsFor(obj)
 

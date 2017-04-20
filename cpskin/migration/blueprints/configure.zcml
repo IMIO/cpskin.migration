@@ -11,16 +11,16 @@
     />
 
   <utility
-    component=".cpskin.Dexterity"
-    name="cpskin.migration.blueprints.cpskin.dexterity" />
+    component=".transmo.Dexterity"
+    name="cpskin.migration.blueprints.transmo.dexterity" />
 
   <utility
-    component=".cpskin.WorkflowHistory"
-    name="cpskin.migration.blueprints.cpskin.workflow" />
+    component=".transmo.WorkflowHistory"
+    name="cpskin.migration.blueprints.transmo.workflow" />
 
   <utility
     component=".schemaupdater.DexterityUpdateSection"
-    name="cpskin.migration.blueprint.cpskin.schemaupdater" />
+    name="cpskin.migration.blueprint.transmo.schemaupdater" />
 
   <utility
     component=".logger.LoggerSection"

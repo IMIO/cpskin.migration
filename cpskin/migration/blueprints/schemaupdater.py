@@ -16,8 +16,19 @@ from zope.interface import classProvides
 from zope.interface import implementer
 from zope.lifecycleevent import ObjectModifiedEvent
 from zope.schema import getFieldsInOrder
-import logging
 
+import logging
+import sys
+import time
+
+logger = logging.getLogger('Cpskin blueprints schemaupdater')
+logger.setLevel(logging.INFO)
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s",
+                              "%Y-%m-%d %H:%M:%S")
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 _marker = object()
 
@@ -125,7 +136,6 @@ class DexterityUpdateSection(object):
             field.set(field.interface(obj), value)
             return
 
-        # import ipdb; ipdb.set_trace()
         # Get the field's current value, if it has one then leave it alone
         value = getMultiAdapter(
             (obj, field),
@@ -147,6 +157,7 @@ class DexterityUpdateSection(object):
 
     def __iter__(self):
         for item in self.previous:
+            # start = time.time()
             pathkey = self.pathkey(*item.keys())[0]
             # not enough info
             if not pathkey:
@@ -178,6 +189,9 @@ class DexterityUpdateSection(object):
             for schemata in iterSchemata(obj):
                 for name, field in getFieldsInOrder(schemata):
                     self.update_field(obj, field, item)
-
-            notify(ObjectModifiedEvent(obj))
+            # roundtrip = time.time() - start
+            # logger.info('Schemaupdater 0: {0}'.format(roundtrip))
+            # notify(ObjectModifiedEvent(obj))
+            # roundtrip = time.time() - start
+            # logger.info('Schemaupdater 1: {0}'.format(roundtrip))
             yield item

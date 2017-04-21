@@ -430,7 +430,7 @@ class Dexterity(object):
                 continue
 
             # remove plone site path from path
-
+            cut = 2
             if self.remote_url.split('/')[-2] == self.remote_url.split('/')[-1]:  # noqa
                 cut = 3
 

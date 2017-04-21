@@ -22,6 +22,7 @@ from plone import api
 from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler  # noqa
 from plone.dexterity.interfaces import IDexterityContent
 from Products.CMFDynamicViewFTI.interface import ISelectableBrowserDefault
+from Products.MailHost.interfaces import IMailHost
 from xml.dom import minidom
 from z3c.relationfield.relation import RelationValue
 from zope.app.container.contained import notifyContainerModified

@@ -114,7 +114,6 @@ class Dexterity(object):
     def __init__(self, transmogrifier, name, options, previous):
         self.previous = previous
         self.options = options
-        # import ipdb; ipdb.set_trace()
         self.context = transmogrifier.context if transmogrifier.context else api.portal.get()  # noqa
         self.name = name
         self.ttool = api.portal.get_tool('portal_types')
@@ -140,6 +139,16 @@ class Dexterity(object):
         self.remote_url = self.get_option(
             'remote-url', 'http://localhost:8080')
         plonesite = api.portal.get()
+
+        url = '{0}/get_item'.format(self.remote_url)
+        req = urllib2.Request(url)
+        try:
+            f = urllib2.urlopen(req)
+            resp = f.read()
+        except urllib2.URLError:
+            raise
+        remote_plone_site = json.loads(resp)
+
         if is_first_transmo(plonesite):
             portal_catalog = api.portal.get_tool('portal_catalog')
             object_count = len(portal_catalog())
@@ -289,14 +298,7 @@ class Dexterity(object):
                 portal_languages.supported_langs = languages
 
             # set cpskin interfaces and title for Plone Site object
-            url = '{0}/get_item'.format(self.remote_url)
-            req = urllib2.Request(url)
-            try:
-                f = urllib2.urlopen(req)
-                resp = f.read()
-            except urllib2.URLError:
-                raise
-            remote_plone_site = json.loads(resp)
+
             if remote_plone_site.get('cpskin_interfaces', False):
                 for interface_name in remote_plone_site.get('cpskin_interfaces'):
                     logger.info('set interface: {}'.format(interface_name))
@@ -322,11 +324,11 @@ class Dexterity(object):
                         plonesite.manage_addLocalRoles(principal, roles)
                         plonesite.reindexObjectSecurity()
 
+        # portlets are added at the end because of ConstraintNotSatisfied error
+        # indeed porlet content should be added when content is already added
         self.src_plonesite = plonesite
-        if is_last_transmo(plonesite):
-            # portlets are added at the end because of ConstraintNotSatisfied error
-            # indeed porlet content should be added when content is already added
-            self.src_portlets = remote_plone_site.get('portlets', False)
+        self.src_portlets = remote_plone_site.get('portlets', False)
+
 
     def importAssignment(self, obj, node):
         """ Import an assignment from a node
@@ -370,7 +372,11 @@ class Dexterity(object):
         # 3. Use an adapter to update the portlet settings
         portlet_interface = getUtility(IPortletTypeInterface, name=type_)
         assignment_handler = IPortletAssignmentExportImportHandler(assignment)
-        assignment_handler.import_assignment(portlet_interface, node)
+        from zope.schema._bootstrapinterfaces import ConstraintNotSatisfied
+        try:
+            assignment_handler.import_assignment(portlet_interface, node)
+        except ConstraintNotSatisfied:
+            pass
 
     def _convertToBoolean(self, val):
         return val.lower() in ('true', 'yes', '1')
@@ -419,18 +425,14 @@ class Dexterity(object):
             pathkey = self.pathkey(*keys)[0]
             poskey = self.poskey(*keys)[0]
             if not (pathkey and typekey and poskey):
-                # import ipdb; ipdb.set_trace()
                 logger.warn('Not enough info for item: %s' % item)
                 yield item
                 continue
 
             # remove plone site path from path
-            cut = 2
-            try:
-                if self.remote_url.split('/')[-2] == self.remote_url.split('/')[-1]:  # noqa
-                    cut = 3
-            except:
-                import ipdb; ipdb.set_trace()
+
+            if self.remote_url.split('/')[-2] == self.remote_url.split('/')[-1]:  # noqa
+                cut = 3
 
             path_without_plone = '/'+'/'.join(item.get('_path').split('/')[cut:])  # noqa
             item['_path'] = path_without_plone
@@ -470,65 +472,64 @@ class Dexterity(object):
                 continue
 
             # -----------------------------------------------------------------
-            portal_types = api.portal.get_tool('portal_types')
-            # obj = fti._constructInstance(context, id)
-            try:
-                factory = getUtility(IFactory, fti.factory)
-                obj = factory(id)
-                if hasattr(obj, '_setPortalTypeName'):
-                    obj._setPortalTypeName(fti.getId())
-                notify(ObjectCreatedEvent(obj))
-
-                # seems slow :
-                # rval = container._setObject(id, obj)
-                suppress_events = False
-                set_owner = 1
-                ob = obj  # better name, keep original function signature
-                t = getattr(ob, 'meta_type', None)
-
-                # If an object by the given id already exists, remove it.
-                # import ipdb; ipdb.set_trace()
-                for object_info in context._objects:
-                    if object_info['id'] == id:
-                        context._delObject(id)
-                        break
-
-                if not suppress_events:
-                    # notify(ObjectWillBeAddedEvent(ob, context, id))
-                    pass
-
-                context._objects = context._objects + ({'id': id, 'meta_type': t},)
-                context._setOb(id, ob)
-                ob = context._getOb(id)
-
-                if set_owner:
-                    # TODO: eventify manage_fixupOwnershipAfterAdd
-                    # This will be called for a copy/clone, or a normal _setObject.
-                    ob.manage_fixupOwnershipAfterAdd()
-
-                    # Try to give user the local role "Owner", but only if
-                    # no local roles have been set on the object yet.
-                    if getattr(ob, '__ac_local_roles__', _marker) is None:
-                        user = getSecurityManager().getUser()
-                        if user is not None:
-                            userid = user.getId()
-                            if userid is not None:
-                                ob.manage_setLocalRoles(userid, ['Owner'])
-
-                if not suppress_events:
-                    notify(ObjectAddedEvent(ob, context, id))
-                    # notifyContainerModified(context)
-
-                compatibilityCall('manage_afterAdd', ob, ob, context)
-                rval = id
-
-                newid = isinstance(rval, basestring) and rval or id
-                obj = context._getOb(newid)
-
-            # -----------------------------------------------------------------
-            except:
-                # if archeypes (as ploneformgen)
-                obj = fti._constructInstance(context, id)
+            # portal_types = api.portal.get_tool('portal_types')
+            obj = fti._constructInstance(context, id)
+            # try:
+            #     factory = getUtility(IFactory, fti.factory)
+            #     obj = factory(id)
+            #     if hasattr(obj, '_setPortalTypeName'):
+            #         obj._setPortalTypeName(fti.getId())
+            #     notify(ObjectCreatedEvent(obj))
+            #
+            #     # seems slow :
+            #     # rval = container._setObject(id, obj)
+            #     suppress_events = False
+            #     set_owner = 1
+            #     ob = obj  # better name, keep original function signature
+            #     t = getattr(ob, 'meta_type', None)
+            #
+            #     # If an object by the given id already exists, remove it.
+            #     for object_info in context._objects:
+            #         if object_info['id'] == id:
+            #             context._delObject(id)
+            #             break
+            #
+            #     if not suppress_events:
+            #         # notify(ObjectWillBeAddedEvent(ob, context, id))
+            #         pass
+            #
+            #     context._objects = context._objects + ({'id': id, 'meta_type': t},)
+            #     context._setOb(id, ob)
+            #     ob = context._getOb(id)
+            #
+            #     if set_owner:
+            #         # TODO: eventify manage_fixupOwnershipAfterAdd
+            #         # This will be called for a copy/clone, or a normal _setObject.
+            #         ob.manage_fixupOwnershipAfterAdd()
+            #
+            #         # Try to give user the local role "Owner", but only if
+            #         # no local roles have been set on the object yet.
+            #         if getattr(ob, '__ac_local_roles__', _marker) is None:
+            #             user = getSecurityManager().getUser()
+            #             if user is not None:
+            #                 userid = user.getId()
+            #                 if userid is not None:
+            #                     ob.manage_setLocalRoles(userid, ['Owner'])
+            #
+            #     if not suppress_events:
+            #         notify(ObjectAddedEvent(ob, context, id))
+            #         # notifyContainerModified(context)
+            #
+            #     compatibilityCall('manage_afterAdd', ob, ob, context)
+            #     rval = id
+            #
+            #     newid = isinstance(rval, basestring) and rval or id
+            #     obj = context._getOb(newid)
+            #
+            # # -----------------------------------------------------------------
+            # except:
+            #     # if archeypes (as ploneformgen)
+            #     obj = fti._constructInstance(context, id)
 
             if obj.getId() != id:
                 item[pathkey] = posixpath.join(container, obj.getId())
@@ -808,7 +809,6 @@ class WorkflowHistory(object):
 
                 # update security
                 workflows = self.wftool.getWorkflowsFor(obj)
-                # import ipdb; ipdb.set_trace()
                 for workfl in workflows:
                     workfl.updateRoleMappingsFor(obj)
 

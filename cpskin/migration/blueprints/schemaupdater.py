@@ -189,6 +189,7 @@ class DexterityUpdateSection(object):
             for schemata in iterSchemata(obj):
                 for name, field in getFieldsInOrder(schemata):
                     self.update_field(obj, field, item)
+            notify(ObjectModifiedEvent(obj))
             # roundtrip = time.time() - start
             # logger.info('Schemaupdater 0: {0}'.format(roundtrip))
             # notify(ObjectModifiedEvent(obj))

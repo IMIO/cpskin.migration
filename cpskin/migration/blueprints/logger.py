@@ -2,6 +2,8 @@
 from collective.transmogrifier.interfaces import ISection
 from collective.transmogrifier.interfaces import ISectionBlueprint
 from collective.transmogrifier.utils import Matcher
+from cpskin.migration.blueprints.utils import CURRENT_KEY
+from plone import api
 from time import time
 from zope.annotation.interfaces import IAnnotations
 from zope.interface import classProvides, implements
@@ -37,6 +39,7 @@ class LoggerSection(object):
         start_time = time()
         count = 0
         problematic = 0
+        anno = IAnnotations(api.portal.get())
         for item in self.previous:
             count += 1
             # source sections add store path of current generated item in annotation
@@ -53,8 +56,9 @@ class LoggerSection(object):
                 if self.keys(key)[0] is not None:
                     items.append("%s=%s" % (key, item[key]))
             if items:
-                msg = ", ".join(items)
+                msg = ', '.join(items)
                 msg = '{0}: {1}'.format(count, msg)
+                anno[CURRENT_KEY] = count
                 logger.info(msg)
             yield item
 

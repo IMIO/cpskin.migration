@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from ..migrate import fix_at_image_scales
 from ..migrate import fix_portlets_image_scales
-from AccessControl import getSecurityManager
 from AccessControl.interfaces import IRoleManager
 from Acquisition import aq_base
 from collective.geo.behaviour.behaviour import Coordinates
@@ -19,8 +18,8 @@ from datetime import datetime
 from DateTime import DateTime
 from eea.facetednavigation.criteria.handler import Criteria
 from eea.facetednavigation.widgets.storage import Criterion
-from OFS.subscribers import compatibilityCall
 from plone import api
+from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler  # noqa
 from plone.dexterity.interfaces import IDexterityContent
 from Products.CMFDynamicViewFTI.interface import ISelectableBrowserDefault
 from xml.dom import minidom
@@ -32,31 +31,17 @@ from zope.component import queryMultiAdapter
 from zope.component.interfaces import ComponentLookupError
 from zope.component.interfaces import IFactory
 from zope.container.interfaces import INameChooser
-from zope.event import notify
-from zope.intid.interfaces import IIntIds
 from zope.interface import alsoProvides
 from zope.interface import classProvides
 from zope.interface import implementer
-from zope.lifecycleevent import ObjectAddedEvent
-from zope.lifecycleevent import ObjectCreatedEvent
-from plone.app.multilingual.interfaces import ITranslationManager
-from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler  # noqa
-from plone.app.portlets.interfaces import IPortletTypeInterface
-from plone.portlets.interfaces import ILocalPortletAssignable
-from plone.portlets.interfaces import IPortletManager
-from plone.portlets.interfaces import IPortletAssignmentMapping
-from plone.portlets.interfaces import ILocalPortletAssignmentManager
-from Products.MailHost.interfaces import IMailHost
 
 import base64
 import json
 import logging
 import posixpath
 import sys
-import time
 import transaction
 import urllib2
-from profilehooks import timecall
 
 
 _marker = []

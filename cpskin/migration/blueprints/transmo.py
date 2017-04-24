@@ -20,7 +20,12 @@ from eea.facetednavigation.criteria.handler import Criteria
 from eea.facetednavigation.widgets.storage import Criterion
 from plone import api
 from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler  # noqa
+from plone.app.portlets.interfaces import IPortletTypeInterface
 from plone.dexterity.interfaces import IDexterityContent
+from plone.portlets.interfaces import ILocalPortletAssignable
+from plone.portlets.interfaces import ILocalPortletAssignmentManager
+from plone.portlets.interfaces import IPortletAssignmentMapping
+from plone.portlets.interfaces import IPortletManager
 from Products.CMFDynamicViewFTI.interface import ISelectableBrowserDefault
 from Products.MailHost.interfaces import IMailHost
 from xml.dom import minidom
@@ -179,7 +184,7 @@ class Dexterity(object):
                         raw = result.get('raw', None)
 
                 if obj_id not in custom_folder.keys():
-                    logger.info('add {}'.format(obj_id))
+                    logger.info('add {0}'.format(obj_id))
                     add_meta = 'manage_add{0}'.format(meta_type.replace(' ', ''))
                     if raw:
                         getattr(custom_folder, add_meta)(obj_id)
@@ -198,7 +203,7 @@ class Dexterity(object):
             ]
             for product in results.get('products', []):
                 if product not in product_ids and product not in blacklist:
-                    logger.info('install {}'.format(product))
+                    logger.info('install {0}'.format(product))
                     pqi.installProduct(product)
 
             # users
@@ -216,7 +221,7 @@ class Dexterity(object):
                                 'fullname': user['fullname']
                             }
                         )
-                        logger.info('Added user {}'.format(user['id']))
+                        logger.info('Added user {0}'.format(user['id']))
                     except ValueError:
                         from imio.helpers.security import generate_password
                         password = generate_password()
@@ -230,12 +235,12 @@ class Dexterity(object):
                                 'fullname': user['fullname']
                             }
                         )
-                        logger.info('New password for user {} => {}'.format(
+                        logger.info('New password for user {0} => {1}'.format(
                             user['id'], password))
             # groups
             for group in results.get('groups', []):
                 if not api.group.get(group['id']):
-                    logger.info('Add group {}'.format(group['id']))
+                    logger.info('Add group {0}'.format(group['id']))
                     api.group.create(
                         groupname=group['id'],
                         title=group['title'],
@@ -279,7 +284,7 @@ class Dexterity(object):
             # languages
             if results.get('languages', False):
                 languages = results.get('languages', [])
-                logger.info('set languages: {}'.format(languages))
+                logger.info('set languages: {0}'.format(languages))
                 portal_languages = api.portal.get_tool('portal_languages')
                 portal_languages.supported_langs = languages
 
@@ -287,10 +292,10 @@ class Dexterity(object):
 
             if remote_plone_site.get('cpskin_interfaces', False):
                 for interface_name in remote_plone_site.get('cpskin_interfaces'):
-                    logger.info('set interface: {}'.format(interface_name))
+                    logger.info('set interface: {0}'.format(interface_name))
                     alsoProvides(plonesite, getIfaceById(interface_name))
             if remote_plone_site.get('title', False):
-                logger.info('set title: {}'.format(remote_plone_site.get('title')))
+                logger.info('set title: {0}'.format(remote_plone_site.get('title')))
                 plonesite.title = remote_plone_site.get('title')
 
             # propeties: layout: language-switcher
@@ -303,7 +308,7 @@ class Dexterity(object):
             if remote_plone_site.get('_ac_local_roles', False):
                 for principal, roles in remote_plone_site.get('_ac_local_roles').items():
                     if roles:
-                        logger.info('set roles: {} {} to plone site'.format(
+                        logger.info('set roles: {0} {1} to plone site'.format(
                             principal,
                             roles
                         ))

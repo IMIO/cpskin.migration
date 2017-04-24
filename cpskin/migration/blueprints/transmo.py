@@ -19,6 +19,7 @@ from DateTime import DateTime
 from eea.facetednavigation.criteria.handler import Criteria
 from eea.facetednavigation.widgets.storage import Criterion
 from plone import api
+from plone.app.multilingual.interfaces import ITranslationManager
 from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler  # noqa
 from plone.app.portlets.interfaces import IPortletTypeInterface
 from plone.dexterity.interfaces import IDexterityContent
@@ -30,6 +31,7 @@ from Products.CMFDynamicViewFTI.interface import ISelectableBrowserDefault
 from Products.MailHost.interfaces import IMailHost
 from xml.dom import minidom
 from z3c.relationfield.relation import RelationValue
+from zope.annotation.interfaces import IAnnotations
 from zope.app.container.contained import notifyContainerModified
 from zope.component import getMultiAdapter
 from zope.component import getUtility
@@ -719,10 +721,15 @@ class Dexterity(object):
 
         for path, default_page in default_pages.items():
             obj = api.content.get(path)
-            obj.setDefaultPage(default_page)
-            logger.info('Set default page: {} for: {}'.format(
-                default_page, path))
-
+            if obj.get(default_page):
+                obj.setDefaultPage(default_page)
+                logger.info('Set default page: {0} for: {1}'.format(
+                    default_page, path))
+            else:
+                save_default_pages(path, default_page)
+                logger.info('Save default page: {0} for: {1}'.format(
+                    default_page, path))
+        set_default_pages()
         for translation_mapping in translations_mapping:
             obj_path = translation_mapping['fr']
             obj = api.content.get(obj_path)
@@ -731,7 +738,7 @@ class Dexterity(object):
                 if lang != 'fr':
                     trans_obj = api.content.get(translation_mapping[lang])
                     manager.register_translation(lang, trans_obj)
-                    logger.info('{} translated to {}'.format(
+                    logger.info('{0} translated to {1}'.format(
                         obj_path, trans_obj.absolute_url()))
 
 
@@ -739,6 +746,25 @@ class Dexterity(object):
         # logger.info('reindex all')
         # portal_catalog = api.portal.get_tool('portal_catalog')
         # portal_catalog.manage_catalogRebuild()
+
+
+def save_default_pages(parent_path, default_page, key="DEFAULT_PAGES_KEY"):
+    anno = IAnnotations(api.portal.get())
+    if key not in anno.keys():
+        anno[key] = {}
+    values = anno[key]
+    values[parent_path] = default_page
+    anno[key] = values
+
+
+def set_default_pages(key="DEFAULT_PAGES_KEY"):
+    anno = IAnnotations(api.portal.get())
+    if key in anno.keys():
+        for parent_path, default_page in anno[key].items():
+            obj = api.content.get(parent_path)
+            if obj.get(default_page):
+                obj.setDefaultPage(default_page)
+                del anno[key][parent_path]
 
 
 @implementer(ISection)

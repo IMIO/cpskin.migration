@@ -208,6 +208,11 @@ class Dexterity(object):
                     logger.info('install {0}'.format(product))
                     pqi.installProduct(product)
 
+            # set theme
+            default_skin = results.get('default_skin', None)
+            if default_skin:
+                portal_skins.default_skin = default_skin
+
             # users
             for user in results.get('users', []):
                 if not api.user.get(user['id']):
@@ -726,7 +731,7 @@ class Dexterity(object):
                 logger.info('Set default page: {0} for: {1}'.format(
                     default_page, path))
             else:
-                save_default_pages(path, default_page)
+                save_into_annotation(path, default_page, 'DEFAULT_PAGES_KEY')
                 logger.info('Save default page: {0} for: {1}'.format(
                     default_page, path))
         set_default_pages()
@@ -734,30 +739,37 @@ class Dexterity(object):
             obj_path = translation_mapping['fr']
             obj = api.content.get(obj_path)
             manager = ITranslationManager(obj)
-            for lang in translation_mapping.keys():
+            for lang, path in translation_mapping.items():
                 if lang != 'fr':
-                    trans_obj = api.content.get(translation_mapping[lang])
-                    manager.register_translation(lang, trans_obj)
-                    logger.info('{0} translated to {1}'.format(
-                        obj_path, trans_obj.absolute_url()))
-
-
+                    trans_obj = api.content.get(path)
+                    if trans_obj:
+                        manager.register_translation(lang, trans_obj)
+                        logger.info('{0} translated to {1}'.format(
+                            obj_path, trans_obj.absolute_url()))
+                    else:
+                        save_into_annotation(
+                            obj_path,
+                            {lang: path},
+                            'TRANSLATION_KEY')
+                        logger.info('Save transaltion of {0} for {1}'.format(
+                            obj_path, lang))
+        set_translations()
         # reindex all
         # logger.info('reindex all')
         # portal_catalog = api.portal.get_tool('portal_catalog')
         # portal_catalog.manage_catalogRebuild()
 
 
-def save_default_pages(parent_path, default_page, key="DEFAULT_PAGES_KEY"):
+def save_into_annotation(key, value, anno_key):
     anno = IAnnotations(api.portal.get())
-    if key not in anno.keys():
-        anno[key] = {}
-    values = anno[key]
-    values[parent_path] = default_page
-    anno[key] = values
+    if anno_key not in anno.keys():
+        anno[anno_key] = {}
+    values = anno[anno_key]
+    values[key] = value
+    anno[anno_key] = values
 
 
-def set_default_pages(key="DEFAULT_PAGES_KEY"):
+def set_default_pages(key='DEFAULT_PAGES_KEY'):
     anno = IAnnotations(api.portal.get())
     if key in anno.keys():
         for parent_path, default_page in anno[key].items():
@@ -765,6 +777,21 @@ def set_default_pages(key="DEFAULT_PAGES_KEY"):
             if obj.get(default_page):
                 obj.setDefaultPage(default_page)
                 del anno[key][parent_path]
+
+
+def set_translations(key='TRANSLATION_KEY'):
+    anno = IAnnotations(api.portal.get())
+    if key in anno.keys():
+        for obj_path, kv in anno[key].items():
+            obj = api.content.get(obj_path)
+            manager = ITranslationManager(obj)
+            for lang, path in kv.items():
+                trans_obj = api.content.get(path)
+                if trans_obj:
+                    manager.register_translation(lang, trans_obj)
+                    del anno[key][obj_path]
+                    logger.info('{0} translated to {1}'.format(
+                        obj_path, trans_obj.absolute_url()))
 
 
 @implementer(ISection)

@@ -23,6 +23,7 @@ from plone.app.multilingual.interfaces import ITranslationManager
 from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler  # noqa
 from plone.app.portlets.interfaces import IPortletTypeInterface
 from plone.dexterity.interfaces import IDexterityContent
+from plone.dexterity.utils import safe_utf8
 from plone.portlets.interfaces import ILocalPortletAssignable
 from plone.portlets.interfaces import ILocalPortletAssignmentManager
 from plone.portlets.interfaces import IPortletAssignmentMapping
@@ -469,65 +470,8 @@ class Dexterity(object):
                 yield item
                 continue
 
-            # -----------------------------------------------------------------
-            # portal_types = api.portal.get_tool('portal_types')
             obj = fti._constructInstance(context, id)
-            # try:
-            #     factory = getUtility(IFactory, fti.factory)
-            #     obj = factory(id)
-            #     if hasattr(obj, '_setPortalTypeName'):
-            #         obj._setPortalTypeName(fti.getId())
-            #     notify(ObjectCreatedEvent(obj))
-            #
-            #     # seems slow :
-            #     # rval = container._setObject(id, obj)
-            #     suppress_events = False
-            #     set_owner = 1
-            #     ob = obj  # better name, keep original function signature
-            #     t = getattr(ob, 'meta_type', None)
-            #
-            #     # If an object by the given id already exists, remove it.
-            #     for object_info in context._objects:
-            #         if object_info['id'] == id:
-            #             context._delObject(id)
-            #             break
-            #
-            #     if not suppress_events:
-            #         # notify(ObjectWillBeAddedEvent(ob, context, id))
-            #         pass
-            #
-            #     context._objects = context._objects + ({'id': id, 'meta_type': t},)
-            #     context._setOb(id, ob)
-            #     ob = context._getOb(id)
-            #
-            #     if set_owner:
-            #         # TODO: eventify manage_fixupOwnershipAfterAdd
-            #         # This will be called for a copy/clone, or a normal _setObject.
-            #         ob.manage_fixupOwnershipAfterAdd()
-            #
-            #         # Try to give user the local role "Owner", but only if
-            #         # no local roles have been set on the object yet.
-            #         if getattr(ob, '__ac_local_roles__', _marker) is None:
-            #             user = getSecurityManager().getUser()
-            #             if user is not None:
-            #                 userid = user.getId()
-            #                 if userid is not None:
-            #                     ob.manage_setLocalRoles(userid, ['Owner'])
-            #
-            #     if not suppress_events:
-            #         notify(ObjectAddedEvent(ob, context, id))
-            #         # notifyContainerModified(context)
-            #
-            #     compatibilityCall('manage_afterAdd', ob, ob, context)
-            #     rval = id
-            #
-            #     newid = isinstance(rval, basestring) and rval or id
-            #     obj = context._getOb(newid)
-            #
-            # # -----------------------------------------------------------------
-            # except:
-            #     # if archeypes (as ploneformgen)
-            #     obj = fti._constructInstance(context, id)
+
 
             if obj.getId() != id:
                 item[pathkey] = posixpath.join(container, obj.getId())
@@ -613,10 +557,11 @@ class Dexterity(object):
                         default_pages[item[pathkey]] = str(defaultpage)
 
             # portlets
-            if item.get('portlets, None') and ILocalPortletAssignable.providedBy(obj):  # noqa
+            if item.get('portlets', None) and ILocalPortletAssignable.providedBy(obj):  # noqa
                 data = None
                 data = item['portlets']
-                doc = minidom.parseString(data)
+                save_data = safe_utf8(data)
+                doc = minidom.parseString(save_data)
                 root = doc.documentElement
                 for elem in root.childNodes:
                     if elem.nodeName == 'assignment':

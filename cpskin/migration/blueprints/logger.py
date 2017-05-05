@@ -6,11 +6,11 @@ from cpskin.migration.blueprints.utils import CURRENT_KEY
 from plone import api
 from time import time
 from zope.annotation.interfaces import IAnnotations
-from zope.interface import classProvides, implements
+from zope.interface import classProvides
+from zope.interface import implements
 
 import logging
 import sys
-import transaction
 
 VALIDATIONKEY = 'cpskin.transmogrifier.logger'
 logger = logging.getLogger(VALIDATIONKEY)
@@ -47,9 +47,6 @@ class LoggerSection(object):
             # sections between source section and this section and what don't
             if self.pathkey in item and item[self.pathkey] in self.storage:
                 self.storage.remove(item[self.pathkey])
-            # if count % 100 == 0:
-            #     transaction.commit()
-            #     logger.info('Committed after %s' % count)
             # print item data stored on keys given as option
             items = []
             for key in item.keys():

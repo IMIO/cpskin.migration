@@ -15,7 +15,7 @@
     name="cpskin.migration.blueprints.transmo.dexterity" />
 
   <utility
-    component=".transmo.WorkflowHistory"
+    component=".workflow.WorkflowHistory"
     name="cpskin.migration.blueprints.transmo.workflow" />
 
   <utility

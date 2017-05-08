@@ -6,12 +6,9 @@ from Acquisition import aq_base
 from collective.geo.behaviour.behaviour import Coordinates
 from collective.transmogrifier.interfaces import ISection
 from collective.transmogrifier.interfaces import ISectionBlueprint
-from collective.transmogrifier.utils import defaultKeys
 from collective.transmogrifier.utils import defaultMatcher
 from collective.transmogrifier.utils import Expression
-from collective.transmogrifier.utils import Matcher
 from collective.transmogrifier.utils import traverse
-from copy import deepcopy
 from cpskin.migration.blueprints.utils import is_first_transmo
 from cpskin.migration.blueprints.utils import is_last_transmo
 from datetime import datetime
@@ -43,6 +40,7 @@ from zope.container.interfaces import INameChooser
 from zope.interface import alsoProvides
 from zope.interface import classProvides
 from zope.interface import implementer
+from zope.intid.interfaces import IIntIds
 
 import base64
 import json
@@ -328,7 +326,6 @@ class Dexterity(object):
         self.src_plonesite = plonesite
         self.src_portlets = remote_plone_site.get('portlets', False)
 
-
     def importAssignment(self, obj, node):
         """ Import an assignment from a node
         """
@@ -472,7 +469,6 @@ class Dexterity(object):
 
             obj = fti._constructInstance(context, id)
 
-
             if obj.getId() != id:
                 item[pathkey] = posixpath.join(container, obj.getId())
 
@@ -569,6 +565,7 @@ class Dexterity(object):
                     elif elem.nodeName == 'blacklist':
                         self.importBlacklist(obj, elem)
                 fix_portlets_image_scales(obj)
+
             # Store positions in a mapping containing an id to position mapping
             # for each parent path {parent_path: {item_id: item_pos}}.
             item_id = item[pathkey].split('/')[-1]
@@ -614,39 +611,7 @@ class Dexterity(object):
                         rvs.append(rv)
                     setattr(obj, 'relatedItems', rvs)
 
-        for path, positions in positions_mapping.items():
-            # Normalize positions
-            ordered_keys = sorted(positions.keys(), key=lambda x: positions[x])
-            normalized_positions = {}
-            for pos, key in enumerate(ordered_keys):
-                normalized_positions[key] = pos
-
-            # TODO: After the new collective.transmogrifier release (>1.4), the
-            # utils.py provides a traverse method.
-            parent = traverse(self.context, path)
-            # parent = self.context.unrestrictedTraverse(path.lstrip('/'))
-            if not parent:
-                continue
-            parent_base = aq_base(parent)
-
-            if hasattr(parent_base, 'getOrdering'):
-                ordering = parent.getOrdering()
-                # Only DefaultOrdering of p.folder is supported
-                if (not hasattr(ordering, '_order')
-                        and not hasattr(ordering, '_pos')):
-                    continue
-                order = ordering._order()
-                pos = ordering._pos()
-                order.sort(key=lambda x: normalized_positions.get(
-                    x, pos.get(x, self.default_pos)))
-                for i, id_ in enumerate(order):
-                    pos[id_] = i
-
-                notifyContainerModified(parent)
-
-            if parent_base.portal_type == 'Plone Site':
-                for ordered_key in ordered_keys:
-                    parent_base.moveObjectsToBottom(ordered_key)
+        save_positions_mapping(positions_mapping, 'POSTITIONS_MAPPING_KEY')
 
         if is_last_transmo(self.src_plonesite):
             if self.src_portlets:
@@ -668,6 +633,8 @@ class Dexterity(object):
 
             logger.info('Fix at image scales')
             fix_at_image_scales()
+            logger.info('Set positions')
+            set_positions('POSTITIONS_MAPPING_KEY')
 
         for path, default_page in default_pages.items():
             obj = api.content.get(path)
@@ -714,6 +681,22 @@ def save_into_annotation(key, value, anno_key):
     anno[anno_key] = values
 
 
+def save_positions_mapping(positions_mapping, anno_key):
+    anno = IAnnotations(api.portal.get())
+    if anno_key not in anno.keys():
+        anno[anno_key] = {}
+
+    values = anno[anno_key]
+    for key, value in positions_mapping.items():
+        if key in values.keys():
+            values[key].update(value)
+        else:
+            values[key] = value
+    # if positions_mapping.get('/fr', None):
+    #     import ipdb; ipdb.set_trace()
+    anno[anno_key] = values
+
+
 def set_default_pages(key='DEFAULT_PAGES_KEY'):
     anno = IAnnotations(api.portal.get())
     if key in anno.keys():
@@ -739,66 +722,41 @@ def set_translations(key='TRANSLATION_KEY'):
                         obj_path, trans_obj.absolute_url()))
 
 
-@implementer(ISection)
-class WorkflowHistory(object):
-    classProvides(ISectionBlueprint)
+def set_positions(key='POSTITIONS_MAPPING_KEY'):
+    portal = api.portal.get()
+    anno = IAnnotations(portal)
+    if key in anno.keys():
+        for path, positions in anno[key].items():
+            # Normalize positions
+            ordered_keys = sorted(positions.keys(), key=lambda x: positions[x])
+            normalized_positions = {}
+            for pos, key in enumerate(ordered_keys):
+                normalized_positions[key] = pos
 
-    def __init__(self, transmogrifier, name, options, previous):
-        self.transmogrifier = transmogrifier
-        self.name = name
-        self.options = options
-        self.previous = previous
-        self.context = transmogrifier.context
-        self.wftool = api.portal.get_tool('portal_workflow')
-        self.pathkey = defaultMatcher(options, 'path-key', name, 'path')
-
-        if 'workflowhistory-key' in options:
-            workflowhistorykeys = options['workflowhistory-key'].splitlines()
-        else:
-            workflowhistorykeys = defaultKeys(options['blueprint'], name,
-                                              'workflow_history')
-        self.workflowhistorykey = Matcher(*workflowhistorykeys)
-
-    def __iter__(self):
-        for item in self.previous:
-            pathkey = self.pathkey(*item.keys())[0]
-            workflowhistorykey = self.workflowhistorykey(*item.keys())[0]
-
-            if not pathkey or not workflowhistorykey or \
-               workflowhistorykey not in item:  # not enough info
-                yield item
+            # TODO: After the new collective.transmogrifier release (>1.4), the
+            # utils.py provides a traverse method.
+            parent = traverse(portal, path)
+            # parent = self.context.unrestrictedTraverse(path.lstrip('/'))
+            if not parent:
                 continue
+            parent_base = aq_base(parent)
 
-            obj = self.context.unrestrictedTraverse(
-                str(item[pathkey]).lstrip('/'), None)
-            if obj is None or not getattr(obj, 'workflow_history', False):
-                yield item
-                continue
-
-            if IDexterityContent.providedBy(obj):
-                item_tmp = deepcopy(item)
-                workflow_for_obj = self.wftool.getWorkflowsFor(obj)
-                if not workflow_for_obj:
-                    yield item
+            if hasattr(parent_base, 'getOrdering'):
+                ordering = parent.getOrdering()
+                # Only DefaultOrdering of p.folder is supported
+                if (not hasattr(ordering, '_order')
+                        and not hasattr(ordering, '_pos')):
                     continue
-                # current_obj_wf = workflow_for_obj[0].id
+                order = ordering._order()
+                pos = ordering._pos()
+                order.sort(key=lambda x: normalized_positions.get(
+                    x, pos.get(x, 1000000)))
+                for i, id_ in enumerate(order):
+                    pos[id_] = i
 
-                # get back datetime stamp and set the workflow history
-                for workflow in item_tmp[workflowhistorykey]:
-                    for k, workflow2 in enumerate(item_tmp[workflowhistorykey][workflow]):  # noqa
-                        if 'time' in item_tmp[workflowhistorykey][workflow][k]:
-                            t = DateTime(item_tmp[workflowhistorykey][workflow][k]['time'])  # noqa
-                            item_tmp[workflowhistorykey][workflow][k]['time'] = t  # noqa
+                notifyContainerModified(parent)
 
-                if 'cpskin_workflow' in item_tmp[workflowhistorykey].keys():
-                    cpskin_workflow = item_tmp[workflowhistorykey]['cpskin_workflow'][-1]  # noqa
-                    review_state = cpskin_workflow.get('review_state')
-                    api.content.transition(obj, to_state=review_state)
-                obj.workflow_history.data = item_tmp[workflowhistorykey]
-
-                # update security
-                workflows = self.wftool.getWorkflowsFor(obj)
-                for workfl in workflows:
-                    workfl.updateRoleMappingsFor(obj)
-
-            yield item
+            if parent_base.portal_type == 'Plone Site':
+                for ordered_key in ordered_keys:
+                    parent_base.moveObjectsToBottom(ordered_key)
+        del anno[key]

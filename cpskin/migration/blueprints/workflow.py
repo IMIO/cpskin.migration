@@ -67,6 +67,10 @@ class WorkflowHistory(object):
                     cpskin_workflow = item_tmp[workflowhistorykey]['cpskin_workflow'][-1]  # noqa
                     review_state = cpskin_workflow.get('review_state')
                     api.content.transition(obj, to_state=review_state)
+                if 'cktemplate_workflow' in item_tmp[workflowhistorykey].keys():
+                    cktemplate_workflow = item_tmp[workflowhistorykey]['cktemplate_workflow'][-1]  # noqa
+                    review_state = cktemplate_workflow.get('review_state')
+                    api.content.transition(obj, to_state=review_state)
                 obj.workflow_history.data = item_tmp[workflowhistorykey]
 
                 # update security

@@ -9,3 +9,7 @@ def publishContent(wftool, content):
             wftool.doActionFor(content, 'publish_and_hide')
         elif 'publish' in actions:
             wftool.doActionFor(content, 'publish')
+
+
+def to_bool(value):
+    return value.lower() in ('yes', 'true', 't', '1')

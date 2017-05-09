@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from ..migrate import fix_at_image_scales
 from ..migrate import fix_portlets_image_scales
+from ..utils import to_bool
 from AccessControl.interfaces import IRoleManager
 from Acquisition import aq_base
 from collective.geo.behaviour.behaviour import Coordinates
@@ -75,7 +76,7 @@ LISTING_VIEW_MAPPING = {  # OLD (AT and old DX) : NEW
     'folder_tabular_view': 'tabular_view',
     'standard_view': 'listing_view',
     'thumbnail_view': 'album_view',
-    'view': 'listing_view',
+    'view': 'view',
 }
 
 
@@ -279,13 +280,46 @@ class Dexterity(object):
                 geo = results.get('geo', False)
                 lat_key = 'collective.geo.settings.interfaces.IGeoSettings.latitude'  # noqa
                 lng_key = 'collective.geo.settings.interfaces.IGeoSettings.longitude'  # noqa
+                zoom_key = 'collective.geo.settings.interfaces.IGeoSettings.zoom'  # noqa
                 if geo.get('latitude', False) and geo.get('longitude', False):
                     from decimal import Decimal
                     api.portal.set_registry_record(lat_key,
                                                    Decimal(geo['latitude']))
                     api.portal.set_registry_record(lng_key,
                                                    Decimal(geo['longitude']))
+                    api.portal.set_registry_record(zoom_key,
+                                                   Decimal(geo['zoom']))
                     logger.info('Geo site settings for latitude and longitude updated.')  # noqa
+
+            # discussion
+            if results.get('discussion', False):
+                discussion = results.get('discussion')
+                anonymous_comments = 'plone.app.discussion.interfaces.IDiscussionSettings.anonymous_comments'  # bool  # noqa
+                anonymous_email_enabled = 'plone.app.discussion.interfaces.IDiscussionSettings.anonymous_email_enabled'   # bool  # noqa
+                captcha = 'plone.app.discussion.interfaces.IDiscussionSettings.captcha'  # choice  # noqa
+                edit_comment_enabled = 'plone.app.discussion.interfaces.IDiscussionSettings.edit_comment_enabled'  # bool  # noqa
+                globally_enabled = 'plone.app.discussion.interfaces.IDiscussionSettings.globally_enabled'  # bool  # noqa
+                moderation_enabled = 'plone.app.discussion.interfaces.IDiscussionSettings.moderation_enabled'  # bool  # noqa
+                moderator_email = 'plone.app.discussion.interfaces.IDiscussionSettings.moderator_email'  # textline  # noqa
+                moderator_notification_enabled = 'plone.app.discussion.interfaces.IDiscussionSettings.moderator_notification_enabled'  # bool  # noqa
+                show_commenter_image = 'plone.app.discussion.interfaces.IDiscussionSettings.show_commenter_image'  # bool  # noqa
+                user_notification_enabled = 'plone.app.discussion.interfaces.IDiscussionSettings.user_notification_enabled'  # bool  # noqa
+                discussion['anonymous_comments'] = api.portal.set_registry_record(anonymous_comments, to_bool(discussion['anonymous_comments']))  # noqa
+                discussion['anonymous_email_enabled'] = api.portal.set_registry_record(anonymous_email_enabled, to_bool(discussion['anonymous_email_enabled']))  # noqa
+                cap = discussion.get('captcha')
+                if cap == 'None':
+                    cap = ''
+                discussion['captcha'] = api.portal.set_registry_record(captcha, cap)  # noqa
+                discussion['edit_comment_enabled'] = api.portal.set_registry_record(edit_comment_enabled, to_bool(discussion['edit_comment_enabled']))  # noqa
+                discussion['globally_enabled'] = api.portal.set_registry_record(globally_enabled, to_bool(discussion['globally_enabled']))  # noqa
+                discussion['moderation_enabled'] = api.portal.set_registry_record(moderation_enabled, to_bool(discussion['moderation_enabled']))  # noqa
+                me = discussion.get('moderator_email')
+                if me == 'None':
+                    me = ''
+                discussion['moderator_email'] = api.portal.set_registry_record(moderator_email, me)  # noqa
+                discussion['moderator_notification_enabled'] = api.portal.set_registry_record(moderator_notification_enabled, to_bool(discussion['moderator_notification_enabled']))  # noqa
+                discussion['show_commenter_image'] = api.portal.set_registry_record(show_commenter_image, to_bool(discussion['show_commenter_image']))  # noqa
+                discussion['user_notification_enabled'] = api.portal.set_registry_record(user_notification_enabled, to_bool(discussion['user_notification_enabled']))  # noqa
 
             # languages
             if results.get('languages', False):
@@ -376,7 +410,7 @@ class Dexterity(object):
 
     def _convertToBoolean(self, val):
         return val.lower() in ('true', 'yes', '1')
-#
+
     def importBlacklist(self, obj, node):
         """ Import a blacklist from a node
         """
@@ -443,6 +477,24 @@ class Dexterity(object):
                 item['expires'] = item.get('expirationDate')
             if item.get('effectiveDate', False):
                 item['effective'] = item.get('effectiveDate')
+
+            # --- comments ---
+            if item.get('_classname', None) in ['Conversation', 'Comment']:
+                from plone.app.discussion.comment import CommentFactory
+                from plone.app.discussion.interfaces import IConversation
+                from dateutil import parser
+                conversation = IConversation(obj)
+                comment = CommentFactory()
+                comment.title = item.get('title')
+                comment.text = item.get('text')
+                comment.creator = item.get('creator')
+                creation_date = parser.parse(item.get('creation_date'))
+                comment.creation_date = creation_date
+                modification_date = parser.parse(item.get('modification_date'))
+                comment.modification_date = modification_date
+                conversation.addComment(comment)
+                yield item
+                continue
 
             # --- constructor ---
             type_, path = item[typekey], item[pathkey]
@@ -539,6 +591,8 @@ class Dexterity(object):
 
             # layout
             if ISelectableBrowserDefault.providedBy(obj):
+                # if obj.id == 'presentation-elu-2':
+                #     import ipdb; ipdb.set_trace()
                 layout = item.get('_layout', None)
                 defaultpage = item.get('_defaultpage', None)
                 if layout:
@@ -722,11 +776,11 @@ def set_translations(key='TRANSLATION_KEY'):
                         obj_path, trans_obj.absolute_url()))
 
 
-def set_positions(key='POSTITIONS_MAPPING_KEY'):
+def set_positions(anno_key='POSTITIONS_MAPPING_KEY'):
     portal = api.portal.get()
     anno = IAnnotations(portal)
-    if key in anno.keys():
-        for path, positions in anno[key].items():
+    if anno_key in anno.keys():
+        for path, positions in anno[anno_key].items():
             # Normalize positions
             ordered_keys = sorted(positions.keys(), key=lambda x: positions[x])
             normalized_positions = {}
@@ -759,4 +813,4 @@ def set_positions(key='POSTITIONS_MAPPING_KEY'):
             if parent_base.portal_type == 'Plone Site':
                 for ordered_key in ordered_keys:
                     parent_base.moveObjectsToBottom(ordered_key)
-        del anno[key]
+        del anno[anno_key]

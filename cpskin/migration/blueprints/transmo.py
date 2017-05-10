@@ -14,9 +14,12 @@ from cpskin.migration.blueprints.utils import is_first_transmo
 from cpskin.migration.blueprints.utils import is_last_transmo
 from datetime import datetime
 from DateTime import DateTime
+from dateutil import parser
 from eea.facetednavigation.criteria.handler import Criteria
 from eea.facetednavigation.widgets.storage import Criterion
 from plone import api
+from plone.app.discussion.comment import CommentFactory
+from plone.app.discussion.interfaces import IConversation
 from plone.app.multilingual.interfaces import ITranslationManager
 from plone.app.portlets.exportimport.interfaces import IPortletAssignmentExportImportHandler  # noqa
 from plone.app.portlets.interfaces import IPortletTypeInterface
@@ -480,18 +483,23 @@ class Dexterity(object):
 
             # --- comments ---
             if item.get('_classname', None) in ['Conversation', 'Comment']:
-                from plone.app.discussion.comment import CommentFactory
-                from plone.app.discussion.interfaces import IConversation
-                from dateutil import parser
                 conversation = IConversation(obj)
                 comment = CommentFactory()
                 comment.title = item.get('title')
                 comment.text = item.get('text')
-                comment.creator = item.get('creator')
+                comment.author_email = item.get('author_email', None)
+                comment.author_name = item.get('author_name', None)
+                comment.author_username = item.get('author_username', None)
                 creation_date = parser.parse(item.get('creation_date'))
                 comment.creation_date = creation_date
                 modification_date = parser.parse(item.get('modification_date'))
                 comment.modification_date = modification_date
+                # workflow = item.get('_workflow_history').get('comment_review_workflow', None)
+                # if len(workflow) > 0:
+                #     review_workflow = workflow[-1]
+                #     review_state = review_workflow.get('review_state')
+                #     api.content.transition(comment, to_state=review_state)
+
                 conversation.addComment(comment)
                 yield item
                 continue

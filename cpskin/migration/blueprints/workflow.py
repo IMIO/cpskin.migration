@@ -63,13 +63,21 @@ class WorkflowHistory(object):
                             t = DateTime(item_tmp[workflowhistorykey][workflow][k]['time'])  # noqa
                             item_tmp[workflowhistorykey][workflow][k]['time'] = t  # noqa
 
-                if 'cpskin_workflow' in item_tmp[workflowhistorykey].keys():
-                    cpskin_workflow = item_tmp[workflowhistorykey]['cpskin_workflow'][-1]  # noqa
-                    review_state = cpskin_workflow.get('review_state')
-                    api.content.transition(obj, to_state=review_state)
                 if 'cktemplate_workflow' in item_tmp[workflowhistorykey].keys():
                     cktemplate_workflow = item_tmp[workflowhistorykey]['cktemplate_workflow'][-1]  # noqa
                     review_state = cktemplate_workflow.get('review_state')
+                    api.content.transition(obj, to_state=review_state)
+                if 'cpskin_workflow' not in item_tmp[workflowhistorykey].keys() and 'cpskin3_workflow' in item_tmp[workflowhistorykey].keys():
+                    cpskin3_workflow = item_tmp[workflowhistorykey]['cpskin3_workflow'][-1]  # noqa
+                    review_state = cpskin3_workflow.get('review_state')
+                    api.content.transition(obj, to_state=review_state)
+                if 'cpskin_workflow' not in item_tmp[workflowhistorykey].keys() and 'cpskin_moderation_workflow' in item_tmp[workflowhistorykey].keys():
+                    cpskin_moderation_workflow = item_tmp[workflowhistorykey]['cpskin_moderation_workflow'][-1]  # noqa
+                    review_state = cpskin_moderation_workflow.get('review_state')
+                    api.content.transition(obj, to_state=review_state)
+                if 'cpskin_workflow' in item_tmp[workflowhistorykey].keys():
+                    cpskin_workflow = item_tmp[workflowhistorykey]['cpskin_workflow'][-1]  # noqa
+                    review_state = cpskin_workflow.get('review_state')
                     api.content.transition(obj, to_state=review_state)
                 obj.workflow_history.data = item_tmp[workflowhistorykey]
 

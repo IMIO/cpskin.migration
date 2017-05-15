@@ -19,66 +19,68 @@ This package is tested using Travis CI. The current status is :
 
 exrample of cpskin/migration/blueprints/dexterity.cfg
 
-[transmogrifier]
-pipeline =
-    catalogsource
-    skip-plonesite
-    setuuid
-    folders
-    cpskin
-    schemaupdater
-    owner
-    workflow
-    logger
+.. code-block:: buildout
 
-[catalogsource]
-blueprint = collective.jsonmigrator.catalogsource
-remote-url = http://localhost:8080/Plone
-remote-username = admin
-remote-password = admin
-catalog-path = /portal_catalog
-catalog-query = {}
+  [transmogrifier]
+  pipeline =
+      catalogsource
+      skip-plonesite
+      setuuid
+      folders
+      cpskin
+      schemaupdater
+      owner
+      workflow
+      logger
 
-[skip-plonesite]
-blueprint = collective.transmogrifier.sections.condition
-condition = python:item.get('_type', None) != 'Plone Site'
+  [catalogsource]
+  blueprint = collective.jsonmigrator.catalogsource
+  remote-url = http://localhost:8080/Plone
+  remote-username = admin
+  remote-password = admin
+  catalog-path = /portal_catalog
+  catalog-query = {}
 
-[setuuid]
-blueprint = collective.transmogrifier.sections.manipulator
-keys = _uid
-destination = string:plone.uuid
+  [skip-plonesite]
+  blueprint = collective.transmogrifier.sections.condition
+  condition = python:item.get('_type', None) != 'Plone Site'
 
-[folders]
-blueprint = collective.transmogrifier.sections.folders
-path-key = _path
+  [setuuid]
+  blueprint = collective.transmogrifier.sections.manipulator
+  keys = _uid
+  destination = string:plone.uuid
 
-[cpskin]
-blueprint = cpskin.migration.blueprints.transmo.dexterity
-remote-url = http://localhost:8080/Plone
-remote-username = admin
-remote-password = admin
-path-key = _path
-pos-key = _gopip
-keys =
-    _type
-    _path
-    _gopip
+  [folders]
+  blueprint = collective.transmogrifier.sections.folders
+  path-key = _path
 
-[schemaupdater]
-blueprint = cpskin.migration.blueprint.transmo.schemaupdater
-path-key = _path
+  [cpskin]
+  blueprint = cpskin.migration.blueprints.transmo.dexterity
+  remote-url = http://localhost:8080/Plone
+  remote-username = admin
+  remote-password = admin
+  path-key = _path
+  pos-key = _gopip
+  keys =
+      _type
+      _path
+      _gopip
 
-[owner]
-blueprint = collective.jsonmigrator.owner
-owner-key = _owner
-path-key = _path
+  [schemaupdater]
+  blueprint = cpskin.migration.blueprint.transmo.schemaupdater
+  path-key = _path
 
-[workflow]
-blueprint = cpskin.migration.blueprints.transmo.workflow
+  [owner]
+  blueprint = collective.jsonmigrator.owner
+  owner-key = _owner
+  path-key = _path
 
-[logger]
-blueprint = cpskin.migration.blueprint.logger
-keys =
-    _type
-    _path
+  [workflow]
+  blueprint = cpskin.migration.blueprints.transmo.workflow
+
+  [logger]
+  blueprint = cpskin.migration.blueprint.logger
+  keys =
+      _type
+      _path
 

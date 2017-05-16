@@ -331,6 +331,12 @@ class Dexterity(object):
                 portal_languages = api.portal.get_tool('portal_languages')
                 portal_languages.supported_langs = languages
 
+            # workflow
+            if results.get('workflow', False):
+                portal_workflow = api.portal.get_tool('portal_workflow')
+                workflow = results.get('workflow', 'cpskin_workflow')
+                portal_workflow.setDefaultChain(workflow)
+
             # set cpskin interfaces and title for Plone Site object
 
             if remote_plone_site.get('cpskin_interfaces', False):

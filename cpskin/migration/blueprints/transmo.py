@@ -29,6 +29,7 @@ from plone.portlets.interfaces import ILocalPortletAssignable
 from plone.portlets.interfaces import ILocalPortletAssignmentManager
 from plone.portlets.interfaces import IPortletAssignmentMapping
 from plone.portlets.interfaces import IPortletManager
+from plone.resource.interfaces import IResourceDirectory
 from Products.CMFDynamicViewFTI.interface import ISelectableBrowserDefault
 from Products.MailHost.interfaces import IMailHost
 from xml.dom import minidom
@@ -204,7 +205,8 @@ class Dexterity(object):
                 'collective.contentleadimage',
                 'plone.app.collection',
                 'cpskin.demo',
-                'archetypes.multilingual'
+                'archetypes.multilingual',
+                'CPUtils'
             ]
             for product in results.get('products', []):
                 if product not in product_ids and product not in blacklist:
@@ -337,7 +339,13 @@ class Dexterity(object):
                 workflow = results.get('workflow', 'cpskin_workflow')
                 portal_workflow.setDefaultChain(workflow)
 
-            # set cpskin interfaces and title for Plone Site object
+            # resources
+            if results.get('resources', False):
+                portal_resources = getUtility(IResourceDirectory, name='persistent')
+                cpskin_resources_folder = portal_resources['cpskin']
+                for res_id, res_data in results.get('resources').items():
+                    cpskin_resources_folder[res_id].data = res_data
+                    logger.info('Update resource: {0}'.format(res_id))
 
             if remote_plone_site.get('cpskin_interfaces', False):
                 for interface_name in remote_plone_site.get('cpskin_interfaces'):

@@ -83,4 +83,3 @@ exrample of cpskin/migration/blueprints/dexterity.cfg
   keys =
       _type
       _path
-

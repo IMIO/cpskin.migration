@@ -344,7 +344,7 @@ class Dexterity(object):
                 portal_resources = getUtility(IResourceDirectory, name='persistent')
                 cpskin_resources_folder = portal_resources['cpskin']
                 for res_id, res_data in results.get('resources').items():
-                    cpskin_resources_folder[res_id].data = res_data
+                    cpskin_resources_folder[res_id].data = safe_utf8(res_data)
                     logger.info('Update resource: {0}'.format(res_id))
 
             if remote_plone_site.get('cpskin_interfaces', False):
@@ -547,7 +547,6 @@ class Dexterity(object):
                 item[pathkey] = posixpath.join(container, obj.getId())
 
             # --- cpskin stuff ---
-
             # Exclude from nav
             if item.get('excludeFromNav', False):
                 obj.exclude_from_nav = item.get('excludeFromNav')
@@ -670,7 +669,6 @@ class Dexterity(object):
                         if roles:
                             obj.manage_addLocalRoles(principal, roles)
                             obj.reindexObjectSecurity()
-
             yield item
 
         for path, atref_dict in atrefs.items():

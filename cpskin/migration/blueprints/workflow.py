@@ -6,8 +6,8 @@ from collective.transmogrifier.utils import defaultMatcher
 from collective.transmogrifier.utils import Matcher
 from copy import deepcopy
 from DateTime import DateTime
+from OFS.interfaces import IItem
 from plone import api
-from plone.dexterity.interfaces import IDexterityContent
 from zope.interface import classProvides
 from zope.interface import implementer
 
@@ -48,7 +48,7 @@ class WorkflowHistory(object):
                 yield item
                 continue
 
-            if IDexterityContent.providedBy(obj):
+            if IItem.providedBy(obj):
                 item_tmp = deepcopy(item)
                 workflow_for_obj = self.wftool.getWorkflowsFor(obj)
                 if not workflow_for_obj:

@@ -679,11 +679,18 @@ class Dexterity(object):
                     rvs = []
                     for ref_path in ref_paths:
                         ref_obj = api.content.get(str(ref_path))
-                        intids = getUtility(IIntIds)
-                        to_id = intids.getId(ref_obj)
-                        rv = RelationValue(to_id)
-                        rvs.append(rv)
+                        if ref_obj:
+                            intids = getUtility(IIntIds)
+                            to_id = intids.getId(ref_obj)
+                            rv = RelationValue(to_id)
+                            rvs.append(rv)
+                        else:
+                            save_into_annotation(obj, ref_paths, 'RELATED_TO')
+                            logger.info(
+                                'Save ref of {0} into annotation for {1}'.fomrat(
+                                    ref_path, path))
                     setattr(obj, 'relatedItems', rvs)
+        set_related_to()
 
         save_positions_mapping(positions_mapping, 'POSTITIONS_MAPPING_KEY')
 
@@ -769,6 +776,28 @@ def save_positions_mapping(positions_mapping, anno_key):
     # if positions_mapping.get('/fr', None):
     #     import ipdb; ipdb.set_trace()
     anno[anno_key] = values
+
+
+def set_related_to(key='RELATED_TO'):
+    anno = IAnnotations(api.portal.get())
+    if key in anno.keys():
+        for obj, ref_paths in anno[key].items():
+            exists = True
+            rvs = []
+            for ref_path in ref_paths:
+                ref_obj = api.content.get(str(ref_path))
+                if ref_obj:
+                    intids = getUtility(IIntIds)
+                    to_id = intids.getId(ref_obj)
+                    rv = RelationValue(to_id)
+                    rvs.append(rv)
+                else:
+                    exists = False
+                    logger.info('ref of {0} do not exist'.fomrat(ref_path))
+                if exists:
+                    logger.info('ref of {0} exists now'.fomrat(ref_path))
+                    setattr(obj, 'relatedItems', rvs)
+                    del anno[key][obj]
 
 
 def set_default_pages(key='DEFAULT_PAGES_KEY'):

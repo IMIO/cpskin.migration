@@ -687,7 +687,7 @@ class Dexterity(object):
                         else:
                             save_into_annotation(obj, ref_paths, 'RELATED_TO')
                             logger.info(
-                                'Save ref of {0} into annotation for {1}'.fomrat(
+                                'Save ref of {0} into annotation for {1}'.format(
                                     ref_path, path))
                     setattr(obj, 'relatedItems', rvs)
         set_related_to()
@@ -793,9 +793,9 @@ def set_related_to(key='RELATED_TO'):
                     rvs.append(rv)
                 else:
                     exists = False
-                    logger.info('ref of {0} do not exist'.fomrat(ref_path))
+                    logger.info('ref of {0} do not exist'.format(ref_path))
                 if exists:
-                    logger.info('ref of {0} exists now'.fomrat(ref_path))
+                    logger.info('ref of {0} exists now'.format(ref_path))
                     setattr(obj, 'relatedItems', rvs)
                     del anno[key][obj]
 

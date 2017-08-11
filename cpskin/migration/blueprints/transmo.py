@@ -794,10 +794,10 @@ def set_related_to(key='RELATED_TO'):
                 else:
                     exists = False
                     logger.info('ref of {0} do not exist'.format(ref_path))
-                if exists:
-                    logger.info('ref of {0} exists now'.format(ref_path))
-                    setattr(obj, 'relatedItems', rvs)
-                    del anno[key][obj]
+            if exists:
+                logger.info('ref of {0} exists now'.format(ref_path))
+                setattr(obj, 'relatedItems', rvs)
+                del anno[key][obj]
 
 
 def set_default_pages(key='DEFAULT_PAGES_KEY'):

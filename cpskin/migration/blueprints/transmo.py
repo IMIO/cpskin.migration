@@ -716,6 +716,7 @@ class Dexterity(object):
             fix_at_image_scales()
             logger.info('Set positions')
             set_positions('POSTITIONS_MAPPING_KEY')
+            set_a_la_une_slider()
 
         for path, default_page in default_pages.items():
             obj = api.content.get(path)
@@ -863,3 +864,13 @@ def set_positions(anno_key='POSTITIONS_MAPPING_KEY'):
                 for ordered_key in ordered_keys:
                     parent_base.moveObjectsToBottom(ordered_key)
         del anno[anno_key]
+
+
+def set_a_la_une_slider():
+    # portal = api.portal.get()
+    brains = api.content.find(portal_type='Collection', id='a-la-une')
+    for brain in brains:
+        coll = brain.getObject()
+        coll.display_type = 'slider-with-carousel'
+        coll.reindexObject()
+        logger.info('Set slider-with-carousel for {0}'.format(coll))

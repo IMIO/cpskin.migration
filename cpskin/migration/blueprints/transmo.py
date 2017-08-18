@@ -420,9 +420,12 @@ class Dexterity(object):
         portlet_interface = getUtility(IPortletTypeInterface, name=type_)
         assignment_handler = IPortletAssignmentExportImportHandler(assignment)
         from zope.schema._bootstrapinterfaces import ConstraintNotSatisfied
+        from zope.schema._bootstrapinterfaces import RequiredMissing
         try:
             assignment_handler.import_assignment(portlet_interface, node)
         except ConstraintNotSatisfied:
+            pass
+        except RequiredMissing:
             pass
 
     def _convertToBoolean(self, val):

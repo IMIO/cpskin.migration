@@ -764,6 +764,9 @@ class Dexterity(object):
                             logger.info('{0}/{1} {2} added in {3}'.format(
                                 i, tot, email, path)
                             )
+                            if i % 25 == 0:
+                                logger.info('Commit transaction')
+                                transaction.commit()
                         else:
                             logger.info('{0} already in {1}'.format(email, path))
                     # path

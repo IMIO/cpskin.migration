@@ -155,7 +155,6 @@ class Dexterity(object):
                     api.content.delete(content)
                     logger.info('{0} deleted'.format(content.id))
                     transaction.commit()
-            # get portal_skins/custom folder
 
             remote_username = self.get_option('remote-username', 'admin')
             remote_password = self.get_option('remote-password', 'admin')
@@ -376,6 +375,26 @@ class Dexterity(object):
         # indeed porlet content should be added when content is already added
         self.src_plonesite = plonesite
         self.src_portlets = remote_plone_site.get('portlets', False)
+        # subscribers are also added at the end
+        if is_last_transmo(plonesite):
+            remote_username = self.get_option('remote-username', 'admin')
+            remote_password = self.get_option('remote-password', 'admin')
+            auth_handler = urllib2.HTTPBasicAuthHandler()
+            auth_handler.add_password(realm='Zope',
+                                      uri=self.remote_url,
+                                      user=remote_username,
+                                      passwd=remote_password)
+            opener = urllib2.build_opener(auth_handler)
+            urllib2.install_opener(opener)
+            url = '{0}/transmo-export'.format(self.remote_url)
+            req = urllib2.Request(url)
+            try:
+                f = urllib2.urlopen(req)
+                resp = f.read()
+            except urllib2.URLError:
+                raise
+            results = json.loads(resp)
+            self.src_newsletters = results.get('newsletters', False)
 
     def importAssignment(self, obj, node):
         """ Import an assignment from a node
@@ -720,6 +739,34 @@ class Dexterity(object):
             logger.info('Set positions')
             set_positions('POSTITIONS_MAPPING_KEY')
             set_a_la_une_slider()
+            if self.src_newsletters:
+                for path, subscribers in self.src_newsletters.items():
+                    portal_path = '/'.join(self.context.getPhysicalPath())
+                    newsletterttheme_path = path.replace(portal_path, '')
+                    newsletterttheme = api.content.get(newsletterttheme_path)
+                    tot = len(subscribers)
+                    i = 0
+                    for subscriber in subscribers:
+                        i += 1
+                        email = subscriber.get('email')
+                        active = subscriber.get('active')
+                        fullname = subscriber.get('fullname')
+                        format = subscriber.get('format')
+                        if not newsletterttheme.alreadySubscriber(email):
+                            newId = newsletterttheme._getRandomIdForSubscriber()
+                            newsubscriber = newsletterttheme.createSubscriberObject(newId)
+                            newsubscriber.fullname = fullname
+                            newsubscriber.edit(
+                                format=format,
+                                active=active,
+                                email=email
+                            )
+                            logger.info('{0}/{1} {2} added in {3}'.format(
+                                i, tot, email, path)
+                            )
+                        else:
+                            logger.info('{0} already in {1}'.format(email, path))
+                    # path
 
         for path, default_page in default_pages.items():
             obj = api.content.get(path)
@@ -874,6 +921,7 @@ def set_a_la_une_slider():
     brains = api.content.find(portal_type='Collection', id='a-la-une')
     for brain in brains:
         coll = brain.getObject()
+        path = brain.getPath()
         coll.display_type = 'slider-with-carousel'
         coll.reindexObject()
-        logger.info('Set slider-with-carousel for {0}'.format(coll))
+        logger.info('Set slider-with-carousel for {0}'.format(path))

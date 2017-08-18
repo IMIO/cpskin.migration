@@ -19,5 +19,7 @@ def is_last_transmo(portal):
     batch_current = int(anno[BATCH_CURRENT_KEY])
     batch_size = int(anno[BATCH_SIZE_KEY])
     total_objects = int(anno[TOTAL_OBJECTS_KEY])
+    if CURRENT_KEY not in anno.keys():
+        return False
     current = int(anno[CURRENT_KEY])
     return (total_objects - batch_current + current) < batch_size

@@ -376,6 +376,7 @@ class Dexterity(object):
         self.src_plonesite = plonesite
         self.src_portlets = remote_plone_site.get('portlets', False)
         # subscribers are also added at the end
+        self.src_newsletters = {}
         if is_last_transmo(plonesite):
             remote_username = self.get_option('remote-username', 'admin')
             remote_password = self.get_option('remote-password', 'admin')
@@ -394,7 +395,7 @@ class Dexterity(object):
             except urllib2.URLError:
                 raise
             results = json.loads(resp)
-            self.src_newsletters = results.get('newsletters', False)
+            self.src_newsletters = results.get('newsletters', {})
 
     def importAssignment(self, obj, node):
         """ Import an assignment from a node

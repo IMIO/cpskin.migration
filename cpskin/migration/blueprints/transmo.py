@@ -802,9 +802,12 @@ class Dexterity(object):
                         logger.info('Save transaltion of {0} for {1}'.format(
                             obj_path, lang))
         set_translations()
+        # reindex resolveid
+        portal_catalog = api.portal.get_tool('portal_catalog')
+        logger.info('Starting reindex of UIDs')
+        portal_catalog.manage_reindexIndex('UID')
         # reindex all
         # logger.info('reindex all')
-        # portal_catalog = api.portal.get_tool('portal_catalog')
         # portal_catalog.manage_catalogRebuild()
 
 

@@ -370,6 +370,13 @@ class Dexterity(object):
                         ))
                         plonesite.manage_addLocalRoles(principal, roles)
                         plonesite.reindexObjectSecurity()
+            if results.get('leadimage'):
+                for portal_type_id in results['leadimage'].get('allowed_types', []):
+                    from cpskin.core.utils import add_behavior
+                    add_behavior(
+                        portal_type_id,
+                        'plone.app.contenttypes.behaviors.leadimage.ILeadImage'
+                    )
 
         # portlets are added at the end because of ConstraintNotSatisfied error
         # indeed porlet content should be added when content is already added

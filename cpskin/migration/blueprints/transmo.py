@@ -778,6 +778,10 @@ class Dexterity(object):
                         else:
                             logger.info('{0} already in {1}'.format(email, path))
                     # path
+            # reindex resolveid
+            portal_catalog = api.portal.get_tool('portal_catalog')
+            logger.info('Starting reindex of UIDs')
+            portal_catalog.manage_reindexIndex('UID')
 
         for path, default_page in default_pages.items():
             obj = api.content.get(path)
@@ -809,10 +813,6 @@ class Dexterity(object):
                         logger.info('Save transaltion of {0} for {1}'.format(
                             obj_path, lang))
         set_translations()
-        # reindex resolveid
-        portal_catalog = api.portal.get_tool('portal_catalog')
-        logger.info('Starting reindex of UIDs')
-        portal_catalog.manage_reindexIndex('UID')
         # reindex all
         # logger.info('reindex all')
         # portal_catalog.manage_catalogRebuild()

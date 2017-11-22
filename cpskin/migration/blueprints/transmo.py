@@ -525,28 +525,7 @@ class Dexterity(object):
             if item.get('effectiveDate', False):
                 item['effective'] = item.get('effectiveDate')
 
-            # --- comments ---
-            if item.get('_classname', None) in ['Conversation', 'Comment']:
-                conversation = IConversation(obj)
-                comment = CommentFactory()
-                comment.title = item.get('title')
-                comment.text = item.get('text')
-                comment.author_email = item.get('author_email', None)
-                comment.author_name = item.get('author_name', None)
-                comment.author_username = item.get('author_username', None)
-                creation_date = parser.parse(item.get('creation_date'))
-                comment.creation_date = creation_date
-                modification_date = parser.parse(item.get('modification_date'))
-                comment.modification_date = modification_date
-                # workflow = item.get('_workflow_history').get('comment_review_workflow', None)
-                # if len(workflow) > 0:
-                #     review_workflow = workflow[-1]
-                #     review_state = review_workflow.get('review_state')
-                #     api.content.transition(comment, to_state=review_state)
 
-                conversation.addComment(comment)
-                yield item
-                continue
 
             # --- constructor ---
             type_, path = item[typekey], item[pathkey]
@@ -575,6 +554,29 @@ class Dexterity(object):
 
             if obj.getId() != id:
                 item[pathkey] = posixpath.join(container, obj.getId())
+
+            # --- comments ---
+            if item.get('_classname', None) in ['Conversation', 'Comment']:
+                conversation = IConversation(obj)
+                comment = CommentFactory()
+                comment.title = item.get('title')
+                comment.text = item.get('text')
+                comment.author_email = item.get('author_email', None)
+                comment.author_name = item.get('author_name', None)
+                comment.author_username = item.get('author_username', None)
+                creation_date = parser.parse(item.get('creation_date'))
+                comment.creation_date = creation_date
+                modification_date = parser.parse(item.get('modification_date'))
+                comment.modification_date = modification_date
+                # workflow = item.get('_workflow_history').get('comment_review_workflow', None)
+                # if len(workflow) > 0:
+                #     review_workflow = workflow[-1]
+                #     review_state = review_workflow.get('review_state')
+                #     api.content.transition(comment, to_state=review_state)
+
+                conversation.addComment(comment)
+                yield item
+                continue
 
             # --- cpskin stuff ---
             # Exclude from nav

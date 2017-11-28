@@ -11,6 +11,7 @@ from plone.uuid.interfaces import IMutableUUID
 from Products.Archetypes.event import ObjectEditedEvent
 from Products.Archetypes.event import ObjectInitializedEvent
 from Products.Archetypes.interfaces import IBaseObject
+from Products.CMFPlone.utils import safe_unicode
 from transmogrify.dexterity.interfaces import IDeserializer
 from z3c.form import interfaces
 from zope import event
@@ -65,7 +66,7 @@ def set(field, obj, val):
     elif field.mutator is not None:
         getattr(obj, field.mutator)(val)
     else:
-        field.set(obj, val)
+        field.set(obj, safe_unicode(val))
 
 
 @implementer(ISection)

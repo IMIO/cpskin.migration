@@ -10,6 +10,7 @@ from collective.transmogrifier.interfaces import ISectionBlueprint
 from collective.transmogrifier.utils import defaultMatcher
 from collective.transmogrifier.utils import Expression
 from collective.transmogrifier.utils import traverse
+from cpskin.core.utils import add_behavior
 from cpskin.migration.blueprints.utils import is_first_transmo
 from cpskin.migration.blueprints.utils import is_last_transmo
 from datetime import datetime
@@ -211,6 +212,11 @@ class Dexterity(object):
                 if product not in product_ids and product not in blacklist:
                     logger.info('install {0}'.format(product))
                     pqi.installProduct(product)
+                    if product == 'collective.sticky':
+                        add_behavior(
+                            'Event',
+                            'collective.sticky.behavior.ISticky'
+                        )
 
             # set theme
             default_skin = results.get('default_skin', None)
@@ -372,7 +378,6 @@ class Dexterity(object):
                         plonesite.reindexObjectSecurity()
             if results.get('leadimage'):
                 for portal_type_id in results['leadimage'].get('allowed_types', []):
-                    from cpskin.core.utils import add_behavior
                     add_behavior(
                         portal_type_id,
                         'plone.app.contenttypes.behaviors.leadimage.ILeadImage'

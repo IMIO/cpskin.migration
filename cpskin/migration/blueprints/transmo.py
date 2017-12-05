@@ -459,6 +459,8 @@ class Dexterity(object):
             pass
         except RequiredMissing:
             pass
+        except ValueError:
+            pass
 
     def _convertToBoolean(self, val):
         return val.lower() in ('true', 'yes', '1')

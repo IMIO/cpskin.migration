@@ -357,8 +357,9 @@ class Dexterity(object):
                     logger.info('set interface: {0}'.format(interface_name))
                     alsoProvides(plonesite, getIfaceById(interface_name))
             if remote_plone_site.get('title', False):
-                logger.info('set title: {0}'.format(remote_plone_site.get('title')))
-                plonesite.title = remote_plone_site.get('title')
+                title = safe_utf8(remote_plone_site.get('title'))
+                logger.info('set title: {0}'.format(title))
+                plonesite.title = title
 
             # propeties: layout: language-switcher
             properties = remote_plone_site.get('_properties', None)

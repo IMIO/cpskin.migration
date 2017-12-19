@@ -504,6 +504,7 @@ class Dexterity(object):
         default_pages = {}
         translations_mapping = []
         atrefs = {}
+        positions_contact = {}
         for item in self.previous:
             keys = item.keys()
             typekey = self.typekey(*keys)[0]
@@ -709,6 +710,11 @@ class Dexterity(object):
                         if roles:
                             obj.manage_addLocalRoles(principal, roles)
                             obj.reindexObjectSecurity()
+            # collective.contact.core
+            if item.get('position', None):
+                positions_contact[path] = item['position']
+                item['position'] = None
+
             yield item
 
         for path, atref_dict in atrefs.items():
@@ -732,8 +738,22 @@ class Dexterity(object):
                     setattr(obj, 'relatedItems', rvs)
         set_related_to()
 
-        save_positions_mapping(positions_mapping, 'POSTITIONS_MAPPING_KEY')
+        for path, ref_path in positions_contact.items():
+            obj = api.content.get(str(path))
+            ref_obj = api.content.get(str(ref_path))
+            if ref_obj:
+                intids = getUtility(IIntIds)
+                to_id = intids.getId(ref_obj)
+                rv = RelationValue(to_id)
+                obj.position = rv
+            else:
+                save_into_annotation(obj, ref_path, 'POSITION_CONTACT')
+                logger.info(
+                    'Save ref of {0} into annotation for {1}'.format(
+                        ref_path, path))
+        set_related_positions()
 
+        save_positions_mapping(positions_mapping, 'POSTITIONS_MAPPING_KEY')
         if is_last_transmo(self.src_plonesite):
             if self.src_portlets:
                 if ILocalPortletAssignable.providedBy(self.src_plonesite):
@@ -872,6 +892,25 @@ def set_related_to(key='RELATED_TO'):
             if exists:
                 logger.info('ref of {0} exists now'.format(ref_path))
                 setattr(obj, 'relatedItems', rvs)
+                del anno[key][obj]
+
+
+def set_related_positions(key='POSITION_CONTACT'):
+    anno = IAnnotations(api.portal.get())
+    if key in anno.keys():
+        for obj, ref_path in anno[key].items():
+            exists = True
+            ref_obj = api.content.get(str(ref_path))
+            if ref_obj:
+                intids = getUtility(IIntIds)
+                to_id = intids.getId(ref_obj)
+                rv = RelationValue(to_id)
+            else:
+                exists = False
+                logger.info('ref of {0} do not exist'.format(ref_path))
+            if exists:
+                logger.info('ref of {0} exists now'.format(ref_path))
+                obj.position = rv
                 del anno[key][obj]
 
 

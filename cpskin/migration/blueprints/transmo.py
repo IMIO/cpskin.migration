@@ -206,7 +206,12 @@ class Dexterity(object):
                 'plone.app.collection',
                 'cpskin.demo',
                 'archetypes.multilingual',
-                'CPUtils'
+                'CPUtils',
+                'collective.contact.membrane',
+                'dexterity.membrane',
+                'membrane',
+                'collective.indexing',
+                'sc.social.bookmarks'
             ]
             for product in results.get('products', []):
                 if product not in product_ids and product not in blacklist:

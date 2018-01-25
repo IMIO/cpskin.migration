@@ -11,6 +11,7 @@ from collective.transmogrifier.utils import defaultMatcher
 from collective.transmogrifier.utils import Expression
 from collective.transmogrifier.utils import traverse
 from cpskin.core.utils import add_behavior
+from cpskin.core.utils import has_behavior
 from cpskin.migration.blueprints.utils import is_first_transmo
 from cpskin.migration.blueprints.utils import is_last_transmo
 from datetime import datetime
@@ -227,6 +228,18 @@ class Dexterity(object):
             default_skin = results.get('default_skin', None)
             if default_skin:
                 portal_skins.default_skin = default_skin
+
+            # behaviors
+            behaviors = results.get('behaviors', None)
+            if behaviors:
+                for portal_type, pt_behaviors in behaviors.items():
+                    if self.ttool.get(portal_type):
+                        for behavior in pt_behaviors:
+                            if not has_behavior(portal_type, behavior):
+                                add_behavior(portal_type, behavior)
+                                logger.info('Behavior {0} added to {1}'.format(
+                                    portal_type, behavior))
+
 
             # users
             for user in results.get('users', []):
